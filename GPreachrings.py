@@ -1,3 +1,8 @@
+# GPreachrings - GP reach assignment algorithm and ring network testbed 
+# Uses ring topolpgies created by connecting the outer nodes of the BT (UK) and DTAG (GER) networks
+# Throughput calculated for clockwise and anticlockwise connection for each node pair
+# AUTHOR: Josh Nevin
+
 
 ################### imports ####################
 import numpy as np
@@ -65,7 +70,7 @@ numnodesD = 12
 numedgesD = 24
 LspansD = 80
 
-graphA = graphB
+graphA = graphD
 if graphA == graphT:
     numnodesA = numnodesT
     numedgesA = numedgesT
@@ -261,7 +266,10 @@ def SNRgen(pathind, yearind, nyqch):  # function for generating a new SNR value 
         Gnli = np.sum(Gnlisp)
         Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
         Pch = 1e-3*10**(Popt/10) 
-        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        if nyqch:
+            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        else:
+            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
         snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
         #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
         sdnorm = sd[yearind]
@@ -321,7 +329,10 @@ def fmsnr(pathind, yearind, nyqch):  # function for generating a new SNR value t
         Gnli = np.sum(Gnlisp)
         Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
         Pch = 1e-3*10**(Popt/10) 
-        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        if nyqch:
+            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        else:
+            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
         snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
         return lin2db(snr)  
 
@@ -379,7 +390,10 @@ def SNRnew(pathind, yearind, nyqch):  # function for generating a new SNR value 
         Gnli = np.sum(Gnlisp)
         Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
         Pch = 1e-3*10**(Popt/10) 
-        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        if nyqch:
+            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        else:
+            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
         snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
         #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
         sdnorm = sd[yearind]
@@ -710,7 +724,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('totalthrptnoloadingB.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptnoloadingD.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 # %%
@@ -738,7 +752,7 @@ ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('JOCNtotalthrpt.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('totalthrptdiffnoloadingB.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptdiffnoloadingD.pdf', dpi=200,bbox_inches='tight')
 plt.show()
     
 # %%
@@ -780,6 +794,6 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('UmarginGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('UmarginGPbenefitnoloadingD.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
