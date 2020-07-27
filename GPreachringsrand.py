@@ -1,3 +1,9 @@
+# GPreachringsrand - GP reach assignment algorithm and ring network testbed with network traffic loading
+# Uses ring topolpgies created by connecting the outer nodes of the BT (UK) and DTAG (GER) networks
+# Throughput calculated for clockwise and anticlockwise connection for randomly selected node pairs
+# with the number of node pairs connected increasing by 20% per year 
+# AUTHOR: Josh Nevin
+
 
 ################### imports ####################
 import numpy as np
@@ -66,7 +72,7 @@ numnodesD = 12
 numedgesD = 24
 LspansD = 80
 
-graphA = graphD
+graphA = graphD # select the topology under test 
 if graphA == graphT:
     numnodesA = numnodesT
     numedgesA = numedgesT
@@ -130,7 +136,9 @@ def removekey(d, keysrc, keydes): # function for removing key from dict - used t
     del r.get(keysrc)[keydes]
     return r    
 
-def SNRgen(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths):  # function for generating a new SNR value to test if uncertainty is dealt with
+# function for generating a real time SNR values with uncertainty
+    
+def SNRgen(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths):  
     Ls = LspansA
     D = Disp          # rather than the worst-case number 
     gam = NLco
@@ -184,13 +192,18 @@ def SNRgen(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
     Gnli = np.sum(Gnlisp)
     Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
-    snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+    if nyqch:
+        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+    else:
+        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
     snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
     #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
     sdnorm = sd[yearind]
     return lin2db(snr) + np.random.normal(0,sdnorm,numpoints) 
-        
-def fmsnr(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths):  # function for generating a new SNR value to test if uncertainty is dealt with
+
+# function for generating a fixed margin SNR value
+      
+def fmsnr(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths):  
     Ls = LspansA
     D = Disp          # rather than the worst-case number 
     gam = NLco
@@ -243,10 +256,15 @@ def fmsnr(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths)
     Gnli = np.sum(Gnlisp)
     Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
-    snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+    if nyqch:
+        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+    else:
+        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
     snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
     return lin2db(snr)  
-    
+
+# function for generating a new SNR value to test if uncertainty is dealt with
+
 def SNRnew(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths):  # function for generating a new SNR value to test if uncertainty is dealt with
     Ls = LspansA
     D = Disp          # rather than the worst-case number 
@@ -300,13 +318,17 @@ def SNRnew(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
     Gnli = np.sum(Gnlisp)
     Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
-    snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+    if nyqch:
+        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+    else:
+        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
     snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
     #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
     sdnorm = sd[yearind]
     return lin2db(snr) + np.random.normal(0,sdnorm,1) 
 
-def GPtrain(x,y):
+
+def GPtrain(x,y):  # train standard GP using SKLearn - hyper priors controlled by bounds in kernel
         y = y.reshape(-1,1)
         x = x.reshape(-1,1)
         scaler = StandardScaler().fit(y)
@@ -324,7 +346,7 @@ def GPtrain(x,y):
         ystarpi = scaler.inverse_transform(ystarp)
         sigmai = np.mean(ystarpi - ystari)
         return ystari, sigmai
-
+# implementation of GP reach algorithm - finds reach to given confidence level in the face of uncertainty
 def GPreach(pathind, numsig, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths):
     truesnr = SNRgen(pathind,yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths)
     #print(truesnr)
@@ -690,7 +712,7 @@ totthrptdiffrtm = ((totthrptrtm - totthrptfm)/totthrptfm)*100
 
 totthrptdiffsh = ((totgpshcp - totthrptfm)/totthrptfm)*100
 
-randiter = 5
+randiter = 4
 
 if graphA == graphT:
     np.savetxt('totthrptgpirdT' + str(randiter) + '.csv', totthrptgpi, delimiter=',') 
@@ -770,10 +792,6 @@ if graphA == graphB:
     np.savetxt('gpmfrdB' + str(randiter) + '.csv', gpmf, delimiter=',') 
     np.savetxt('rtmUmrdB' + str(randiter) + '.csv', rtmUm, delimiter=',') 
     np.savetxt('rtmmfrdB' + str(randiter) + '.csv', rtmmf, delimiter=',') 
-
-
-
-
 
 # %% plotting 
 
@@ -886,7 +904,7 @@ plt.show()
 
 
 # %% heteroscedastic data generation
-hetdatagen = True
+hetdatagen = False
 if hetdatagen:
     def datatshet(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
             Ls = Lspans
@@ -933,7 +951,10 @@ if hetdatagen:
                 Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans
             Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*Rs*1e9*numspans
             Pch = 1e-3*10**(Popt/10) 
-            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+            if nyqch:            
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+            else:            
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
             #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
             sdnorm = sd # noise on each link is assumed to be proportional to the link length 
