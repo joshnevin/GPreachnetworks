@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -186,40 +187,171 @@ rtmmfB4 = np.genfromtxt(open("rtmmfrdB4.csv", "r"), delimiter=",", dtype =float)
 rtmmfB5 = np.genfromtxt(open("rtmmfrdB5.csv", "r"), delimiter=",", dtype =float)
 rtmmfB = (rtmmfB1 + rtmmfB2 + rtmmfB3 + rtmmfB4 + rtmmfB5)/5
 
+totrtmshcpnoloadingB = np.genfromtxt(open("totrtmshcpB.csv", "r"), delimiter=",", dtype =float)
+totrtmshcpnoloadingD = np.genfromtxt(open("totrtmshcpD.csv", "r"), delimiter=",", dtype =float)
 
 
-# %% DTAG plotting 
+totthrptgpnlD = np.genfromtxt(open("totthrptgpD.csv", "r"), delimiter=",", dtype =float)
+totthrptfmnlD = np.genfromtxt(open("totthrptfmD.csv", "r"), delimiter=",", dtype =float)
+totthrptrtmnlD = np.genfromtxt(open("totthrptrtmD.csv", "r"), delimiter=",", dtype =float)
+totthrptgpnldiffD = np.genfromtxt(open("totthrptdiffgpD.csv", "r"), delimiter=",", dtype =float)
+totthrptrtmnldiffD = np.genfromtxt(open("totthrptdiffrtmD.csv", "r"), delimiter=",", dtype =float)
 
+totthrptgpnlB = np.genfromtxt(open("totthrptgpB.csv", "r"), delimiter=",", dtype =float)
+totthrptfmnlB = np.genfromtxt(open("totthrptfmB.csv", "r"), delimiter=",", dtype =float)
+totthrptrtmnlB = np.genfromtxt(open("totthrptrtmB.csv", "r"), delimiter=",", dtype =float)
+totthrptgpnldiffB = np.genfromtxt(open("totthrptdiffgpB.csv", "r"), delimiter=",", dtype =float)
+totthrptrtmnldiffB = np.genfromtxt(open("totthrptdiffrtmB.csv", "r"), delimiter=",", dtype =float)
+
+totrtmshcpnoloadingdiffB = np.genfromtxt(open("totrtmshcpdiffB.csv", "r"), delimiter=",", dtype =float)
+totrtmshcpnoloadingdiffD = np.genfromtxt(open("totrtmshcpdiffD.csv", "r"), delimiter=",", dtype =float)
+
+years = np.linspace(0,10,21) # define how many years are in the lifetime of the network and the resolution 
+numyears = np.size(years)
+
+# %% Shannon results for constant network loading 
 font = { 'family' : 'sans-serif',
                 'weight' : 'normal',
                 'size'   : 15}
 matplotlib.rc('font', **font)
 
-years = np.linspace(0,10,21) # define how many years are in the lifetime of the network and the resolution 
-numyears = np.size(years)
 
 fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()
 
-#totthrptfmpl = totthrptfm*np.ones([numyears,1])
+ln1 = ax1.plot(years, totrtmshcpnoloadingB,'-', color = 'b',label = 'BT total')
+ln2 = ax1.plot(years, totrtmshcpnoloadingD,'-.', color = 'g',label = 'DTAG total' )
+ln3 = ax2.plot(years, totrtmshcpnoloadingdiffB,'--', color = 'b',label = 'BT gain')
+ln4 = ax2.plot(years, totrtmshcpnoloadingdiffD,':', color = 'g',label = 'DTAG gain' )
 
-ln1 = ax1.plot(years, totthrptgpD,'--', color = 'b',label = 'GP')
-#ln2 = ax1.plot(years, totthrptfmpl,'-', color = 'r',label = 'FM' )
-ln2 = ax1.plot(years, totthrptfmD,'-', color = 'r',label = 'FM' )
-ln3 = ax2.plot(years, totgpshcpD,'-.', color = 'g',label = 'Sh.')
 
-ln4 = ax1.plot(years, totthrptrtmD,':', color = 'b',label = 'RTM')
-#ln5 = ax2.plot(years, totrtmshcp,'-.', color = 'g',label = 'Sh. RTM')
-    
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("total throughput (Tb/s)")
-ax2.set_ylabel("Shannon limit (Tb/s)")
+ax2.set_ylabel("total throughput gain (%)")
+    
+ax1.set_xlim([years[0], years[-1]])
+#ax1.set_ylim([48,56.5])
+#ax2.set_ylim([128,140.5])
+#ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
+    
+lns = ln1+ln2+ln3+ln4
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptnoloadingSH.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+# %% combined results for constant network loading 
+
+fig, ax1 = plt.subplots()
+#ax2 = ax1.twinx()
+
+
+ln1 = ax1.plot(years, totthrptgpnldiffB,'--', color = 'b',label = 'GP BT')
+ln2 = ax1.plot(years, totthrptrtmnldiffB,':', color = 'r',label = 'RTM BT' )
+ln3 = ax1.plot(years, totthrptgpnldiffD,'--', color = 'g',label = 'GP DTAG')
+ln4 = ax1.plot(years, totthrptrtmnldiffD,':', color = 'k',label = 'RTM DTAG' )
+#ln3 = ax2.plot(years, totthrptdiffsh,'-', color = 'g',label = 'Sh.')
+    
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("total throughput gain (%)")
+#ax2.set_ylabel("Shannon limit (%)")
     
 ax1.set_xlim([years[0], years[-1]])
 #ax1.set_ylim([totthrptfmAL[0] - 10, totshcpN[-1] + 10])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
 lns = ln1+ln2+ln3+ln4
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('JOCNtotalthrpt.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptdiffnoloadingBandD.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+fig, ax1 = plt.subplots()
+#ax2 = ax1.twinx()
+totthrptfmplB = totthrptfmnlB*np.ones([numyears,1])
+totthrptfmplD = totthrptfmnlD*np.ones([numyears,1])
+
+
+ln1 = ax1.plot(years, totthrptgpnlB,'--', color = 'b',label = 'GP BT')
+ln2 = ax1.plot(years, totthrptrtmnlB,':', color = 'r',label = 'RTM BT' )
+ln3 = ax1.plot(years, totthrptfmplB,':', color = 'r',label = 'FM BT' )
+ln4 = ax1.plot(years, totthrptgpnlD,'--', color = 'g',label = 'GP DTAG')
+ln5 = ax1.plot(years, totthrptrtmnlD,':', color = 'k',label = 'RTM DTAG' )
+ln6 = ax1.plot(years, totthrptfmplD,':', color = 'c',label = 'FM DTAG' )
+ 
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("total throughput (Tb/s)")
+#ax2.set_ylabel("Shannon limit (%)")
+    
+ax1.set_xlim([years[0], years[-1]])
+#ax1.set_ylim([totthrptfmAL[0] - 10, totshcpN[-1] + 10])
+#ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
+    
+lns = ln1+ln2+ln3+ln4+ln5+ln6
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('JOCNtotalthrpt.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptnoloadingBandD.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+# %%
+fig, ax1 = plt.subplots()
+#ax2 = ax1.twinx()
+
+ln1 = ax1.plot(years, totrtmshcpnoloadingdiffB,'--', color = 'b',label = 'BT')
+ln2 = ax1.plot(years, totrtmshcpnoloadingdiffD,'-', color = 'g',label = 'DTAG' )
+
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("total throughput (Tb/s)")
+#ax2.set_ylabel("Shannon limit (Tb/s)")
+    
+ax1.set_xlim([years[0], years[-1]])
+#ax1.set_ylim([48,56.5])
+#ax2.set_ylim([128,140.5])
+#ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
+    
+lns = ln1+ln2
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptnoloadingdiffSH.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+
+# %% DTAG plotting - random network loading 
+
+
+fig, ax1 = plt.subplots()
+#ax2 = ax1.twinx()
+
+#totthrptfmpl = totthrptfm*np.ones([numyears,1])
+
+ln1 = ax1.plot(years, totthrptgpD,'--', color = 'b',label = 'GP')
+#ln2 = ax1.plot(years, totthrptfmpl,'-', color = 'r',label = 'FM' )
+ln4 = ax1.plot(years, totthrptrtmD,':', color = 'r',label = 'RTM')
+ln2 = ax1.plot(years, totthrptfmD,'-', color = 'm',label = 'FM' )
+#ln3 = ax2.plot(years, totgpshcpD,'-.', color = 'g',label = 'Sh.')
+
+
+#ln5 = ax2.plot(years, totrtmshcp,'-.', color = 'g',label = 'Sh. RTM')
+    
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("total throughput (Tb/s)")
+#ax2.set_ylabel("Shannon limit (Tb/s)")
+    
+ax1.set_xlim([years[0], years[-1]])
+#ax1.set_ylim([totthrptfmAL[0] - 10, totshcpN[-1] + 10])
+#ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
+    
+lns = ln1+ln2+ln4
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
@@ -232,15 +364,15 @@ totthrptdiffrtmD = ((totthrptrtmD - totthrptfmD)/totthrptfmD)*100
 totthrptdiffshD = ((totgpshcpD - totthrptfmD)/totthrptfmD)*100
 
 fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
+#ax2 = ax1.twinx()
 
 ln1 = ax1.plot(years, totthrptdiffgpD,'--', color = 'b',label = 'GP')
 ln2 = ax1.plot(years, totthrptdiffrtmD,':', color = 'r',label = 'RTM' )
-ln3 = ax2.plot(years, totthrptdiffshD,'-', color = 'g',label = 'Sh.')
+#ln3 = ax2.plot(years, totthrptdiffshD,'-', color = 'g',label = 'Sh.')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("total throughput gain (%)")
-ax2.set_ylabel("Shannon limit (%)")
+#ax2.set_ylabel("Shannon limit (%)")
     
 ax1.set_xlim([years[0], years[-1]])
 #ax1.set_ylim([totthrptfmAL[0] - 10, totshcpN[-1] + 10])
@@ -256,7 +388,7 @@ plt.savefig('totalthrptdiffrdaveD.pdf', dpi=200,bbox_inches='tight')
 plt.show()
     
 
-# %% BT plotting 
+# %% BT plotting - random network loading  
 
 font = { 'family' : 'sans-serif',
                 'weight' : 'normal',
@@ -267,26 +399,27 @@ years = np.linspace(0,10,21) # define how many years are in the lifetime of the 
 numyears = np.size(years)
 
 fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
+#ax2 = ax1.twinx()
 
 #totthrptfmpl = totthrptfm*np.ones([numyears,1])
 
 ln1 = ax1.plot(years, totthrptgpB,'--', color = 'b',label = 'GP')
-ln2 = ax1.plot(years, totthrptfmB,'-', color = 'r',label = 'FM' )
-ln3 = ax2.plot(years, totgpshcpB,'-.', color = 'g',label = 'Sh.')
 
-ln4 = ax1.plot(years, totthrptrtmB,':', color = 'b',label = 'RTM')
+#ln3 = ax2.plot(years, totgpshcpB,'-.', color = 'g',label = 'Sh.')
+
+ln4 = ax1.plot(years, totthrptrtmB,':', color = 'r',label = 'RTM')
+ln2 = ax1.plot(years, totthrptfmB,'-', color = 'm',label = 'FM' )
 #ln5 = ax2.plot(years, totrtmshcp,'-.', color = 'g',label = 'Sh. RTM')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("total throughput (Tb/s)")
-ax2.set_ylabel("Shannon limit (Tb/s)")
+#ax2.set_ylabel("Shannon limit (Tb/s)")
     
 ax1.set_xlim([years[0], years[-1]])
-#ax1.set_ylim([totthrptfmAL[0] - 10, totshcpN[-1] + 10])
+ax1.set_ylim([5,50])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
-lns = ln1+ln2+ln3+ln4
+lns = ln1+ln2+ln4
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
@@ -301,21 +434,21 @@ totthrptdiffrtmB = ((totthrptrtmB - totthrptfmB)/totthrptfmB)*100
 totthrptdiffshB = ((totgpshcpB - totthrptfmB)/totthrptfmB)*100
 
 fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
+#ax2 = ax1.twinx()
 
 ln1 = ax1.plot(years, totthrptdiffgpB,'--', color = 'b',label = 'GP')
 ln2 = ax1.plot(years, totthrptdiffrtmB,':', color = 'r',label = 'RTM' )
-ln3 = ax2.plot(years, totthrptdiffshB,'-', color = 'g',label = 'Sh.')
+#ln3 = ax2.plot(years, totthrptdiffshB,'-', color = 'g',label = 'Sh.')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("total throughput gain (%)")
-ax2.set_ylabel("Shannon limit (%)")
+#ax2.set_ylabel("Shannon limit (%)")
     
 ax1.set_xlim([years[0], years[-1]])
-#ax1.set_ylim([totthrptfmAL[0] - 10, totshcpN[-1] + 10])
+#ax1.set_ylim([0,14])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
-lns = ln1+ln2+ln3
+lns = ln1+ln2
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
@@ -324,13 +457,88 @@ ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 plt.savefig('totalthrptdiffrdaveB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
     
+# %% Shannon results for increasing network loading 
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+
+ln1 = ax1.plot(years, totrtmshcpB,'-', color = 'b',label = 'BT total')
+ln2 = ax1.plot(years, totrtmshcpD,'-.', color = 'g',label = 'DTAG total' )
+ln3 = ax2.plot(years, totthrptdiffshB,'--', color = 'b',label = 'BT gain')
+ln4 = ax2.plot(years, totthrptdiffshD,':', color = 'g',label = 'DTAG gain' )
+
+
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("total throughput (Tb/s)")
+ax2.set_ylabel("total throughput gain (%)")
+    
+ax1.set_xlim([years[0], years[-1]])
+ax2.set_ylim([160,215])
+#ax2.set_ylim([128,140.5])
+#ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
+    
+lns = ln1+ln2+ln3+ln4
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptrdSH.pdf', dpi=200,bbox_inches='tight')
+plt.show()
 
 
 
+# %% total throughput random loading combined 
+
+fig, ax1 = plt.subplots()
+
+ln1 = ax1.plot(years, totthrptgpB,'--', color = 'b',label = 'GP BT')
+ln2 = ax1.plot(years, totthrptrtmB,':', color = 'r',label = 'RTM BT' )
+ln3 = ax1.plot(years, totthrptfmB,'-', color = 'm',label = 'FM BT' )
+
+ln4 = ax1.plot(years, totthrptgpD,'--', color = 'g',label = 'GP DTAG')
+ln5 = ax1.plot(years, totthrptrtmD,':', color = 'k',label = 'RTM DTAG')
+ln6 = ax1.plot(years, totthrptfmD,'-', color = 'c',label = 'FM DTAG' )
 
 
-   
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("total throughput (Tb/s)")
+
+    
+ax1.set_xlim([years[0], years[-1]])
+ax1.set_ylim([5,50])
+    
+lns = ln1+ln2+ln3+ln4+ln5+ln6
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptrdBandD.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+# %% total throughput diff random loading combined 
+
+fig, ax1 = plt.subplots()
+
+ln1 = ax1.plot(years, totthrptdiffgpB,'--', color = 'b',label = 'GP BT')
+ln2 = ax1.plot(years, totthrptdiffrtmB,':', color = 'r',label = 'RTM BT' )
+
+ln3 = ax1.plot(years, totthrptdiffgpD,'--', color = 'g',label = 'GP DTAG')
+ln4 = ax1.plot(years, totthrptdiffrtmD,':', color = 'k',label = 'RTM DTAG')
 
 
+ax1.set_xlabel("time (years)")
+
+ax1.set_ylabel("total throughput gain (%)")
+    
+ax1.set_xlim([years[0], years[-1]])
+ax1.set_ylim([0,25])
+    
+lns = ln1+ln2+ln3+ln4
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs,ncol=2, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+#plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptdiffrdBandD.pdf', dpi=200,bbox_inches='tight')
+plt.show()
 
 
+# %%

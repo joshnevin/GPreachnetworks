@@ -1,12 +1,14 @@
-# Implementation of heteroscedastic GPR 
+# Implementation of most likely heteroscedastic GP regression algroithm:
+# K. Kersting, C. Plagemann, P. Pfaff, and W. Burgard,
+# “Most likely heteroscedastic gaussian process regression,” 
+# inProc. 24th InternationalConference on Machine Learning,(Oregon, USA, 2007), pp. 393–400.
 
-#  imports
-
+# %%  imports
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt 
-import matplotlib.ticker as mticker
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel as W
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from sklearn.preprocessing import StandardScaler
 import time
 from numpy.linalg import cholesky
@@ -17,38 +19,20 @@ from numpy.random import normal
 from scipy.optimize import minimize
 from scipy.spatial.distance import pdist, cdist, squareform
 from scipy.stats import norm
-from scipy import special
-import multiprocessing
-from GHquad import GHquad
-import matplotlib
+#import multiprocessing
+#from GHquad import GHquad
+#import matplotlib
 import math
 #matplotlib.rc_file_defaults()   # use to return to Matplotlib defaults 
 
-#x = np.genfromtxt(open("Pchripple.csv", "r"), delimiter=",", dtype =float)
-#y = np.genfromtxt(open("SNRripple.csv", "r"), delimiter=",", dtype =float)
-#x = np.genfromtxt(open("Pchripple10.csv", "r"), delimiter=",", dtype =float)
-#y = np.genfromtxt(open("SNRripple10.csv", "r"), delimiter=",", dtype =float)
-
-#SNR = np.genfromtxt(open("linkSNR.csv", "r"), delimiter=",", dtype =float)
-#Pch = np.genfromtxt(open("linkPch.csv", "r"), delimiter=",", dtype =float)
-
-#SNR = np.genfromtxt(open("linkSNRNgauss001.csv", "r"), delimiter=",", dtype =float)
-#Pch = np.genfromtxt(open("linkPchNgauss001.csv", "r"), delimiter=",", dtype =float)
-#numpoints = 100
-#numedges = 1
-snr = np.genfromtxt(open("hetdata.csv", "r"), delimiter=",", dtype =float)
-
+snr = np.genfromtxt(open("hetdata.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
 numpoints = np.size(snr,1)
-numedges = np.size(snr,0)
-#x = np.linspace(0,numpoints-1,numpoints)
+numedges = np.size(snr,0)#x = np.linspace(0,numpoints-1,numpoints)
 x = np.linspace(0,10,numpoints)
-
-#plt.plot(x,snr[0],'+')
-#Pch = np.linspace(0,numpoints-1,numpoints)
-# %%
+# 
 #SNR = SNR[0]
 #snr = snr[0:1]
-    # data used by Goldberg 
+    # data used by Goldberg - use for testing 
     # =============================================================================
     #numpoints = 100
     #x = np.linspace(0,1,numpoints)
@@ -59,7 +43,7 @@ x = np.linspace(0,10,numpoints)
     #    y[i] = 2*np.sin(2*np.pi*x[i]) + np.random.normal(0, sd[i])
     # =============================================================================
     
-    # data used by Yuan and Wahba 
+    # data used by Yuan and Wahba - use for testing 
     # =============================================================================
     #numpoints = 200
     #x = np.linspace(0,1,numpoints)  
@@ -68,7 +52,7 @@ x = np.linspace(0,10,numpoints)
     #y = np.random.normal(ymean, ysd)
     # =============================================================================
     
-    # data used by Williams 
+    # data used by Williams - use for testing 
     #numpoints = 200
     #x = np.linspace(0,np.pi,numpoints)
     #wmean = np.sin(2.5*x)*np.sin(1.5*x)
@@ -219,10 +203,9 @@ def HGPfunc(x,y,plot):
             test3 = np.empty([n,1])
             for k in range(n):
                 test3[k] = -np.log(norm.pdf(x[k], fmst[k], varfmst[k]**0.5))
-            print("NLPD argument " + str(norm.pdf(x[k], fmst[k], varfmst[k]**0.5)))
             NLPD[i] = sum(test3)*(1/n)
-            print("MSE = " + str(MSE[i]))
-            print("NLPD = " + str(NLPD[i]))
+            #print("MSE = " + str(MSE[i]))
+            #print("NLPD = " + str(NLPD[i]))
             print("finished iteration " + str(i+1))
             fmstf[i,:] = fmst4.reshape(n)
             varfmstf[i,:] = varfmst4.reshape(n)
@@ -260,82 +243,85 @@ def HGPfunc(x,y,plot):
     fmstps4i = scaler.inverse_transform(fmstps4)
     
     #  ================================ Mutual information transform ===========================================
-    MIcalc = False 
-    # import constellation shapes from MATLAB-generated csv files 
-    if MIcalc:  
-        Qam4r = np.genfromtxt(open("qam4r.csv", "r"), delimiter=",", dtype =float)
-        Qam4i = np.genfromtxt(open("qam4i.csv", "r"), delimiter=",", dtype =float)
-        Qam16r = np.genfromtxt(open("qam16r.csv", "r"), delimiter=",", dtype =float)
-        Qam16i = np.genfromtxt(open("qam16i.csv", "r"), delimiter=",", dtype =float)
-        Qam32r = np.genfromtxt(open("qam32r.csv", "r"), delimiter=",", dtype =float)
-        Qam32i = np.genfromtxt(open("qam32i.csv", "r"), delimiter=",", dtype =float)
-        Qam64r = np.genfromtxt(open("qam64r.csv", "r"), delimiter=",", dtype =float)
-        Qam64i = np.genfromtxt(open("qam64i.csv", "r"), delimiter=",", dtype =float)
-        Qam128r = np.genfromtxt(open("qam128r.csv", "r"), delimiter=",", dtype =float)
-        Qam128i = np.genfromtxt(open("qam128i.csv", "r"), delimiter=",", dtype =float)
-        
-        Qam4 = Qam4r + 1j*Qam4i
-        Qam16 = Qam16r + 1j*Qam16i
-        Qam32 = Qam32r + 1j*Qam32i
-        Qam64 = Qam64r + 1j*Qam64i
-        Qam128 = Qam128r + 1j*Qam128i
-        #  ================================ Estimate MI ================================ 
-        # set modulation format order and number of terms used in Gauss-Hermite quadrature
-        M = 16
-        L = 6
-        
-        def MIGHquad(SNR):
-            if M == 4:
-                Ps = np.mean(np.abs(Qam4**2))
-                X = Qam4
-            elif M == 16:
-                Ps = np.mean(np.abs(Qam16**2))
-                X = Qam16
-            elif M == 32:
-                Ps = np.mean(np.abs(Qam32**2))
-                X = Qam32
-            elif M == 64:
-                Ps = np.mean(np.abs(Qam64**2))
-                X = Qam64
-            elif M == 128:
-                Ps = np.mean(np.abs(Qam128**2))
-                X = Qam128
-            else:
-                print("unrecogised M")
-            sigeff2 = Ps/(10**(SNR/10))
-            Wgh = GHquad(L)[0]
-            Rgh = GHquad(L)[1]
-            sum_out = 0
-            for ii in range(M):
-                sum_in = 0
-                for l1 in range(L):      
-                    sum_inn = 0
-                    for l2 in range(L):
-                        sum_exp = 0
-                        for jj in range(M):  
-                            arg_exp = np.linalg.norm(X[ii]-X[jj])**2 + 2*(sigeff2**0.5)*np.real( (Rgh[l1]+1j*Rgh[l2])*(X[ii]-X[jj]));
-                            sum_exp = np.exp(-arg_exp/sigeff2) + sum_exp
-                        sum_inn = Wgh[l2]*np.log2(sum_exp) + sum_inn
-                    sum_in = Wgh[l1]*sum_inn + sum_in
-                sum_out = sum_in + sum_out
-            return np.log2(M)- (1/(M*np.pi))*sum_out 
-        
-        def findMI(SNR):
-            with multiprocessing.Pool() as pool:
-                Ixy = pool.map(MIGHquad, SNR) 
-            return Ixy
+# =============================================================================
+#     MIcalc = False # select whether to calculate MI using Guassian-Hermite quadrature 
+#     # import constellation shapes from MATLAB-generated csv files 
+#     if MIcalc:  
+#         Qam4r = np.genfromtxt(open("qam4r.csv", "r"), delimiter=",", dtype =float)
+#         Qam4i = np.genfromtxt(open("qam4i.csv", "r"), delimiter=",", dtype =float)
+#         Qam16r = np.genfromtxt(open("qam16r.csv", "r"), delimiter=",", dtype =float)
+#         Qam16i = np.genfromtxt(open("qam16i.csv", "r"), delimiter=",", dtype =float)
+#         Qam32r = np.genfromtxt(open("qam32r.csv", "r"), delimiter=",", dtype =float)
+#         Qam32i = np.genfromtxt(open("qam32i.csv", "r"), delimiter=",", dtype =float)
+#         Qam64r = np.genfromtxt(open("qam64r.csv", "r"), delimiter=",", dtype =float)
+#         Qam64i = np.genfromtxt(open("qam64i.csv", "r"), delimiter=",", dtype =float)
+#         Qam128r = np.genfromtxt(open("qam128r.csv", "r"), delimiter=",", dtype =float)
+#         Qam128i = np.genfromtxt(open("qam128i.csv", "r"), delimiter=",", dtype =float)
+#         
+#         Qam4 = Qam4r + 1j*Qam4i
+#         Qam16 = Qam16r + 1j*Qam16i
+#         Qam32 = Qam32r + 1j*Qam32i
+#         Qam64 = Qam64r + 1j*Qam64i
+#         Qam128 = Qam128r + 1j*Qam128i
+#         #  ================================ Estimate MI ================================ 
+#         # set modulation format order and number of terms used in Gauss-Hermite quadrature
+# =============================================================================
 
+#         M = 16
+#         L = 6
+#         
+#         def MIGHquad(SNR):
+#             if M == 4:
+#                 Ps = np.mean(np.abs(Qam4**2))
+#                 X = Qam4
+#             elif M == 16:
+#                 Ps = np.mean(np.abs(Qam16**2))
+#                 X = Qam16
+#             elif M == 32:
+#                 Ps = np.mean(np.abs(Qam32**2))
+#                 X = Qam32
+#             elif M == 64:
+#                 Ps = np.mean(np.abs(Qam64**2))
+#                 X = Qam64
+#             elif M == 128:
+#                 Ps = np.mean(np.abs(Qam128**2))
+#                 X = Qam128
+#             else:
+#                 print("unrecogised M")
+#             sigeff2 = Ps/(10**(SNR/10))
+#             Wgh = GHquad(L)[0]
+#             Rgh = GHquad(L)[1]
+#             sum_out = 0
+#             for ii in range(M):
+#                 sum_in = 0
+#                 for l1 in range(L):      
+#                     sum_inn = 0
+#                     for l2 in range(L):
+#                         sum_exp = 0
+#                         for jj in range(M):  
+#                             arg_exp = np.linalg.norm(X[ii]-X[jj])**2 + 2*(sigeff2**0.5)*np.real( (Rgh[l1]+1j*Rgh[l2])*(X[ii]-X[jj]));
+#                             sum_exp = np.exp(-arg_exp/sigeff2) + sum_exp
+#                         sum_inn = Wgh[l2]*np.log2(sum_exp) + sum_inn
+#                     sum_in = Wgh[l1]*sum_inn + sum_in
+#                 sum_out = sum_in + sum_out
+#             return np.log2(M)- (1/(M*np.pi))*sum_out 
+#         
+#         def findMI(SNR):
+#             with multiprocessing.Pool() as pool:
+#                 Ixy = pool.map(MIGHquad, SNR) 
+#             return Ixy
+# =============================================================================
         
     print("HGP fitting duration: " + str(duration)) 
     
     return fmst4i, fmstps4i
    
-# %%
+# 
 prmn = np.empty([numedges,numpoints])
 prmnp = np.empty([numedges,numpoints])
 for i in range(np.size(snr,0)):
     prmn[i], prmnp[i] = HGPfunc(x,snr[i],False)
-# %%
+# 
 sig = (prmnp - prmn)
 prmnp1 = prmn + sig    
 prmnn1 = prmn - sig
@@ -347,9 +333,13 @@ prmnp4 = prmn + 4*sig
 prmnn4 = prmn - 4*sig
 prmnp5 = prmn + 5*sig    
 prmnn5 = prmn - 5*sig
-
 # %%
-ind = 4
+font = { 'family' : 'sans-serif',
+                'weight' : 'normal',
+                'size'   : 15}
+matplotlib.rc('font', **font)
+
+ind = 2
 f, ax = plt.subplots()
 ax.plot(x,snr[ind],'+')
 ax.plot(x,prmn[ind],color='k')
@@ -394,8 +384,7 @@ plt.show()
 f, ax = plt.subplots()
 #xl = ['0','2','4', '6', '8', '10']
 ax.plot(x,sig[0],color='r',LineStyle=':',label='160 km')
-#ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
-#ax.plot(x,sig[2],color='b',LineStyle='--',label='720 km')
+ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
 ax.plot(x,sig[2],color='g',LineStyle='-.',label= '960 km')
 ax.plot(x,sig[3],color='b',LineStyle='-.',label= '1200 km')
 ax.plot(x,sig[4],color='y',LineStyle='-.',label= '1600 km')
@@ -403,11 +392,11 @@ ax.plot(x,sig[5],color='c',LineStyle='-.',label= '2400 km')
 
 sdhet = np.linspace(0.04,0.08,numpoints)
 
-ax.plot(x,sdhet,color='k',label='$\sigma$')
+ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
 #plt.plot(x,sigrf[ind],color='k',LineStyle='-',label='$\sqrt{r(x)}$ 1')
 
 ax.set_xlabel("time (years)")
-ax.set_ylabel("$\sigma$ (dB)")
+ax.set_ylabel("SNR $\sigma$ (dB)")
 #ax2.set_ylabel("Shannon throughput gain (%)")
 ax.set_xlim([x[0], x[-1]])
 #ax.set_ylim([0.03, 0.09])
@@ -419,5 +408,58 @@ plt.savefig('JOCNhetgpsig.pdf', dpi=200,bbox_inches='tight')
 #plt.xticklabels()
 plt.show()
 
+# %%
+
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+
+ln2 = ax1.plot(x,snr[ind],'+')
+ln3 = ax1.plot(x,prmn[ind],color='k')
+
+ln4 = ax1.fill(np.concatenate([x, x[::-1]]),
+         np.concatenate([prmnp3[ind],
+                        (prmnn3[ind])[::-1]]),
+         alpha=0.3, fc='r', ec='None', label='$3 \sigma$')
+# =============================================================================
+# ax.fill(np.concatenate([x, x[::-1]]),
+#          np.concatenate([prmnp3[ind],
+#                         (prmnp1[ind])[::-1]]),
+#          alpha=0.3, fc='r', ec='None', label='$3 \sigma$')
+# ax.fill(np.concatenate([x, x[::-1]]),
+#          np.concatenate([prmnn1[ind],
+#                         (prmnn3[ind])[::-1]]),
+#          alpha=0.3, fc='r', ec='None')
+# =============================================================================
+ln5 = ax1.fill(np.concatenate([x, x[::-1]]),
+         np.concatenate([prmnp5[ind],
+                        (prmnp3[ind])[::-1]]),
+         alpha=0.3, fc='g', ec='None', label='$5 \sigma$')
+ln6 = ax1.fill(np.concatenate([x, x[::-1]]),
+         np.concatenate([prmnn3[ind],
+                        (prmnn5[ind])[::-1]]),
+         alpha=0.3, fc='g', ec='None')
+ln7 = ax2.plot(x,sig[ind],color='m',LineStyle='-.',label='$R(time)$')
+
+ln8 = ax2.plot(x,sdhet,color='k',label='true noise SD')
+    
+ax1.set_xlabel("time (years)")
+ax1.set_ylabel("SNR (dB)")
+ax2.set_ylabel("uncertainty SD (dB)")
+    
+ax1.set_xlim([x[0], x[-1]])
+ax1.set_ylim([13,15.5])
+ax2.set_ylim([0.03,0.085])
+#ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
+    
+lns = ln4+ln5+ln7+ln8
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs,loc=2, ncol=4, prop={'size': 10})
+#plt.axis([years[0],years[-1],1.0,8.0])
+plt.savefig('hetGPexample.pdf', dpi=200,bbox_inches='tight')
+
+plt.show()
+
    
     
+
+# %%
