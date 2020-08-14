@@ -5,7 +5,7 @@
 # AUTHOR: Josh Nevin
 
 
-################### imports ####################
+# %% ################## imports ####################
 import numpy as np
 import matplotlib.pyplot as plt
 import time 
@@ -176,8 +176,12 @@ def SNRgen(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
         G = alpha[yearind]*Ls
         NFl = 10**(NF[yearind]/10) 
         Gl = 10**(G/10) 
-        Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
-        snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+        if nyqch:
+            Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
+            snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+        else:
+            Pasesw = NFl*h*f*(Gl - 1)*BchRS*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
+            snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*BchRS*1e9)
         Popt = PchdBm[np.argmax(snrsw)]  
             # =======================================================================
         totnumspans = int(pthdists[pathind]/Ls) # total number of spans traversed for the path 
@@ -190,7 +194,10 @@ def SNRgen(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
             Gnlisp[i] = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans                                                                             
                 
     Gnli = np.sum(Gnlisp)
-    Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
+    if nyqch:
+        Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
+    else:
+        Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
     if nyqch:
         snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
@@ -241,8 +248,12 @@ def fmsnr(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths)
             G = alpha[yearind]*Ls
             NFl = 10**(NF[yearind]/10) 
             Gl = 10**(G/10) 
-            Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
-            snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+            if nyqch:
+                Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+            else:
+                Pasesw = NFl*h*f*(Gl - 1)*BchRS*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*BchRS*1e9)
             Popt = PchdBm[np.argmax(snrsw)]  
             # ======================================================================
             totnumspans = int(pthdists[pathind]/Ls) # total number of spans traversed for the path 
@@ -254,7 +265,10 @@ def fmsnr(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths)
                 Gwdm = (1e-3*10**(Popt/10))/(BchRS*1e9)
                 Gnlisp[i] = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans                                                                                     
     Gnli = np.sum(Gnlisp)
-    Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
+    if nyqch:
+        Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
+    else:
+        Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
     if nyqch:
         snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
@@ -303,8 +317,12 @@ def SNRnew(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
         G = alpha[yearind]*Ls
         NFl = 10**(NF[yearind]/10) 
         Gl = 10**(G/10) 
-        Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
-        snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+        if nyqch:
+            Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
+            snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+        else:
+            Pasesw = NFl*h*f*(Gl - 1)*BchRS*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
+            snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*BchRS*1e9)
         Popt = PchdBm[np.argmax(snrsw)]  
         # =======================================================================
         totnumspans = int(pthdists[pathind]/Ls) # total number of spans traversed for the path 
@@ -316,7 +334,10 @@ def SNRnew(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
             Gwdm = (1e-3*10**(Popt/10))/(BchRS*1e9)
             Gnlisp[i] = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans                                                                             
     Gnli = np.sum(Gnlisp)
-    Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
+    if nyqch:
+        Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*Rs*1e9*totnumspans
+    else:
+        Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
     if nyqch:
         snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
@@ -485,7 +506,7 @@ def findroutesrand(nodes, secondpath, numreq):
     dis = []
     path = []
     if graphA == graphT:
-        for i in range(numreq):           
+        for _ in range(numreq):           
             srcnd, desnd = requestgen(graphA)
             d, p = dijkstra({'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
                                  '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
@@ -502,7 +523,7 @@ def findroutesrand(nodes, secondpath, numreq):
                 dis.append(d2)
                 path.append(p2)
     if graphA == graphB:
-        for i in range(numreq):           
+        for _ in range(numreq):           
             srcnd, desnd = requestgen(graphA)
             d, p = dijkstra({'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
                              '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
@@ -712,7 +733,7 @@ totthrptdiffrtm = ((totthrptrtm - totthrptfm)/totthrptfm)*100
 
 totthrptdiffsh = ((totgpshcp - totthrptfm)/totthrptfm)*100
 
-randiter = 4
+randiter = 5
 
 if graphA == graphT:
     np.savetxt('totthrptgpirdT' + str(randiter) + '.csv', totthrptgpi, delimiter=',') 
@@ -904,7 +925,7 @@ plt.show()
 
 
 # %% heteroscedastic data generation
-hetdatagen = False
+hetdatagen = True
 if hetdatagen:
     def datatshet(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
             Ls = Lspans
@@ -939,37 +960,46 @@ if hetdatagen:
             G = alpha*Ls
             NFl = 10**(NF/10) 
             Gl = 10**(G/10) 
-            Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9 # [W] the ASE noise power in one Nyquist channel across all spans
-            snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+             # [W] the ASE noise power in one Nyquist channel across all spans # NEEDS FIXING - CURRENTLY FOR NYQUIST CASE
+            if nyqch:
+                Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+            else:
+                Pasesw = NFl*h*f*(Gl - 1)*BchRS*1e9
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*BchRS*1e9) # NEEDS FIXING - CURRENTLY FOR NYQUIST CASE
             Popt = PchdBm[np.argmax(snrsw)]     
             
             if nyqch:
                 Gwdm = (1e-3*10**(Popt/10)*NchNy)/(BWNy*1e12) # flat-top value of PSD of signal [W/Hz]
                 Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BWNy**2)  ) )/(np.pi*beta2*Leffa ))*numspans
+                Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*Rs*1e9*numspans
             else:
                 Gwdm = (1e-3*10**(Popt/10))/(BchRS*1e9)
                 Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans
-            Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*Rs*1e9*numspans
+                Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*BchRS*1e9*numspans
             Pch = 1e-3*10**(Popt/10) 
             if nyqch:            
-                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             else:            
-                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
             #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
             sdnorm = sd # noise on each link is assumed to be proportional to the link length 
             return lin2db(snr) + np.random.normal(0,sdnorm,1) 
         
-    def hetsave(edgelens, numedges,Lspans, yearind):    
-            linkSNR = np.empty([numedges,1])
-            for i in range(numedges):
-                linkSNR[i] = datatshet(edgelens[i],Lspans,numlamh[yearind], NFh[yearind], sdh[yearind], alphah[yearind], yearind, False)
-            return linkSNR
-    numyrsh = 101
+    
+    numyrsh = 100
     yearsh = np.linspace(0,10,numyrsh)
     numlamh = np.linspace(20,80,numyrsh,dtype=int)
     NFh = np.linspace(4.5,5.5,numyrsh)
-    sdh = np.linspace(0.04,0.08,numyrsh)
+    #sdh = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
+    sdh1 = np.linspace(0.04,0.06,int(numyrsh/2)+1)  # increase in ageing rate 
+    sdh2 = np.linspace(0.0604,0.1,int(numyrsh/2)-1) # increase in ageing rate 
+
+    sdh = np.append(sdh1,sdh2)
+   
     #sdh = 0.04 + 0.0004*yearsh**2
     #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
     #sdh = 0.04 + (0.36/10**0.5)*yearsh**0.5
@@ -977,6 +1007,9 @@ if hetdatagen:
     alphah = 0.2 + 0.00163669*yearsh
     hetdata = np.empty([numyrsh,numedgesA])
     trxagingh = ((1 + 0.05*yearsh)*2).reshape(np.size(yearsh),1) 
+    trxaginghextdeg1 = [((1 + 0.05*yearsh[i])*2) for i in range(int(numyrsh/2))] 
+    trxaginghextdeg2 = [((trxaginghextdeg1[-1]/2 + 0.1*yearsh[i])*2) for i in range(int(numyrsh/2))] 
+    trxaginghextdeg = np.append(trxaginghextdeg1, trxaginghextdeg2)
     oxcagingh = ((0.03 + 0.007*yearsh)*2).reshape(np.size(yearsh),1)
     #linkPopt = np.empty([numyears,1])
 
@@ -988,19 +1021,249 @@ if hetdatagen:
     plt.legend()
     plt.savefig('sigmavstime.pdf', dpi=200,bbox_inches='tight')
     plt.show()
+
+    plt.plot(yearsh, trxaginghextdeg, label = 'linear')
+    plt.xlabel("time (years)")
+    plt.ylabel("TRx ageing penalty (dB)")
+    plt.legend()
+    #plt.savefig('sigmavstime.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
  
     testlens = [160,480,960,1200, 1600, 2400]
     hetdata = np.empty([len(testlens),numyrsh])
     for i in range(len(testlens)):
         for j in range(numyrsh):
             hetdata[i][j] = datatshet(testlens[i], 80, numlamh[j], NFh[j], sdh[j], alphah[j], j, False)
-    np.savetxt('hetdata.csv', hetdata, delimiter=',')
+    #np.savetxt('hetdata.csv', hetdata, delimiter=',')
+    np.savetxt('hetdataextdeg.csv', hetdata, delimiter=',')
 
+# %% heteroscedastic data gen for 1 year with a sudden increase in the TRx penalty 
 
+if hetdatagen:
+    def datatshetsh(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
+            Ls = Lspans
+            D = Disp
+            gam = NLco
+            lam = 1550 # operating wavelength centre [nm]
+            f = 299792458/(lam*1e-9) # operating frequency [Hz]
+            c = 299792.458 # speed of light in vacuum [nm/ps] -> needed for calculation of beta2
+            Rs = 32 # symbol rate [GBaud]
+            h = 6.63*1e-34  # Planck's constant [Js]
+            if nyqch:
+                NchNy = numlam
+                BWNy = (NchNy*Rs)/1e3 
+            else:
+                NchRS = numlam
+                Df = 50 # 50 GHz grid 
+                BchRS = 41.6 # RS from GN model paper - raised cosine + roll-off of 0.3 
+            allin = np.log((10**(alpha/10)))/2 # fibre loss [1/km] -> weird definition, due to exponential decay of electric field instead of power, which is standard 
+            beta2 = (D*(lam**2))/(2*np.pi*c) # dispersion coefficient at given wavelength [ps^2/km]
+            Leff = (1 - np.exp(-2*allin*Ls ))/(2*allin)  # effective length [km]      
+            Leffa = 1/(2*allin)  # the asymptotic effective length [km]  
+            numspans = int(edgelen/Lspans)
+            
+            numpch = len(PchdBm)
+            Pchsw = 1e-3*10**(PchdBm/10)  # ^ [W]
+            if nyqch:
+                Gwdmsw = (Pchsw*NchNy)/(BWNy*1e12) # flat-top value of PSD of signal [W/Hz]
+                Gnlisw = 1e24*(8/27)*(gam**2)*(Gwdmsw**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BWNy**2)  ) )/(np.pi*beta2*Leffa ))
+            else:
+                Gwdmsw = Pchsw/(BchRS*1e9)
+                Gnlisw = 1e24*(8/27)*(gam**2)*(Gwdmsw**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))
+            G = alpha*Ls
+            NFl = 10**(NF/10) 
+            Gl = 10**(G/10) 
+             # [W] the ASE noise power in one Nyquist channel across all spans # NEEDS FIXING - CURRENTLY FOR NYQUIST CASE
+            if nyqch:
+                Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+            else:
+                Pasesw = NFl*h*f*(Gl - 1)*BchRS*1e9
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*BchRS*1e9) # NEEDS FIXING - CURRENTLY FOR NYQUIST CASE
+            Popt = PchdBm[np.argmax(snrsw)]     
+            
+            if nyqch:
+                Gwdm = (1e-3*10**(Popt/10)*NchNy)/(BWNy*1e12) # flat-top value of PSD of signal [W/Hz]
+                Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BWNy**2)  ) )/(np.pi*beta2*Leffa ))*numspans
+                Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*Rs*1e9*numspans
+            else:
+                Gwdm = (1e-3*10**(Popt/10))/(BchRS*1e9)
+                Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans
+                Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*BchRS*1e9*numspans
+            Pch = 1e-3*10**(Popt/10) 
+            if nyqch:            
+                #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+            else:            
+                #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+            snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
+            #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
+            sdnorm = sd # noise on each link is assumed to be proportional to the link length 
+            return lin2db(snr) + np.random.normal(0,sdnorm,1) 
+        
+    
+    numyrsh = 100
+    yearshst = np.linspace(0,1,numyrsh)
+    numlamhst = np.linspace(20,26,numyrsh,dtype=int)
+    NFhst = np.linspace(4.5,4.6,numyrsh)
+    #sdh = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
+    sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)  # increase in ageing rate 
+    sdh2 = np.linspace(0.1,0.102,int(numyrsh/2)-1) # increase in ageing rate 
 
-
+    sdh = np.append(sdh1,sdh2)
    
+    #sdh = 0.04 + 0.0004*yearsh**2
+    #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
+    #sdh = 0.04 + (0.36/10**0.5)*yearsh**0.5
+    #sdh = 0.04 + 8e-4*yearsh**2
+    alphahst = 0.2 + 0.00163669*yearshst
+    hetdata = np.empty([numyrsh,numedgesA])
+    #trxagingh = ((1 + 0.05*yearshst)*2).reshape(np.size(yearshst),1) 
+    trxaginghextdeg1 = [((1 + 0.05*yearshst[i])*2) for i in range(int(numyrsh/2))] 
+    trxaginghextdeg2 = [((trxaginghextdeg1[-1] + 0.1*yearshst[i])*2) for i in range(int(numyrsh/2))] 
+    trxaginghextdeg = np.append(trxaginghextdeg1, trxaginghextdeg2)
+    oxcagingh = ((0.03 + 0.007*yearshst)*2).reshape(np.size(yearshst),1)
+    #linkPopt = np.empty([numyears,1])
 
+    plt.plot(yearshst, sdh, label = 'linear')
+    #plt.plot(yearsh, sdh2, label = 'quadratic')
+    #plt.plot(yearsh, sdh3, label = 'square root')
+    plt.xlabel("time (years)")
+    plt.ylabel("$\sigma$(dB)")
+    plt.legend()
+    plt.savefig('sigmavstime.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
+    plt.plot(yearshst, trxaginghextdeg, label = 'linear')
+    plt.xlabel("time (years)")
+    plt.ylabel("TRx ageing penalty (dB)")
+    plt.legend()
+    plt.savefig('TRxageing.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
+ 
+    testlens = [160,480,960,1200, 1600, 2400]
+    hetdata = np.empty([len(testlens),numyrsh])
+    for i in range(len(testlens)):
+        for j in range(numyrsh):
+            hetdata[i][j] = datatshetsh(testlens[i], 80, numlamhst[j], NFhst[j], sdh[j], alphahst[j], j, False)
+    #np.savetxt('hetdata.csv', hetdata, delimiter=',')
+    np.savetxt('hetdataextdegst.csv', hetdata, delimiter=',')
 
-   
+# %%
+
+if hetdatagen:
+    def datatshetdv(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
+            Ls = Lspans
+            D = Disp
+            gam = NLco
+            lam = 1550 # operating wavelength centre [nm]
+            f = 299792458/(lam*1e-9) # operating frequency [Hz]
+            c = 299792.458 # speed of light in vacuum [nm/ps] -> needed for calculation of beta2
+            Rs = 32 # symbol rate [GBaud]
+            h = 6.63*1e-34  # Planck's constant [Js]
+            if nyqch:
+                NchNy = numlam
+                BWNy = (NchNy*Rs)/1e3 
+            else:
+                NchRS = numlam
+                Df = 50 # 50 GHz grid 
+                BchRS = 41.6 # RS from GN model paper - raised cosine + roll-off of 0.3 
+            allin = np.log((10**(alpha/10)))/2 # fibre loss [1/km] -> weird definition, due to exponential decay of electric field instead of power, which is standard 
+            beta2 = (D*(lam**2))/(2*np.pi*c) # dispersion coefficient at given wavelength [ps^2/km]
+            Leff = (1 - np.exp(-2*allin*Ls ))/(2*allin)  # effective length [km]      
+            Leffa = 1/(2*allin)  # the asymptotic effective length [km]  
+            numspans = int(edgelen/Lspans)
+            
+            numpch = len(PchdBm)
+            Pchsw = 1e-3*10**(PchdBm/10)  # ^ [W]
+            if nyqch:
+                Gwdmsw = (Pchsw*NchNy)/(BWNy*1e12) # flat-top value of PSD of signal [W/Hz]
+                Gnlisw = 1e24*(8/27)*(gam**2)*(Gwdmsw**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BWNy**2)  ) )/(np.pi*beta2*Leffa ))
+            else:
+                Gwdmsw = Pchsw/(BchRS*1e9)
+                Gnlisw = 1e24*(8/27)*(gam**2)*(Gwdmsw**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))
+            G = alpha*Ls
+            NFl = 10**(NF/10) 
+            Gl = 10**(G/10) 
+             # [W] the ASE noise power in one Nyquist channel across all spans # NEEDS FIXING - CURRENTLY FOR NYQUIST CASE
+            if nyqch:
+                Pasesw = NFl*h*f*(Gl - 1)*Rs*1e9
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*Rs*1e9)
+            else:
+                Pasesw = NFl*h*f*(Gl - 1)*BchRS*1e9
+                snrsw = (Pchsw)/(Pasesw*np.ones(numpch) + Gnlisw*BchRS*1e9) # NEEDS FIXING - CURRENTLY FOR NYQUIST CASE
+            Popt = PchdBm[np.argmax(snrsw)]     
+            
+            if nyqch:
+                Gwdm = (1e-3*10**(Popt/10)*NchNy)/(BWNy*1e12) # flat-top value of PSD of signal [W/Hz]
+                Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BWNy**2)  ) )/(np.pi*beta2*Leffa ))*numspans
+                Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*Rs*1e9*numspans
+            else:
+                Gwdm = (1e-3*10**(Popt/10))/(BchRS*1e9)
+                Gnli = 1e24*(8/27)*(gam**2)*(Gwdm**3)*(Leff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*Leffa*(BchRS**2)*(NchRS**((2*BchRS)/Df))  ) )/(np.pi*beta2*Leffa ))*numspans
+                Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*BchRS*1e9*numspans
+            Pch = 1e-3*10**(Popt/10) 
+            if nyqch:            
+                #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+            else:            
+                #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+            snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
+            #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
+            sdnorm = sd 
+            return lin2db(snr) + np.random.normal(0,sdnorm,1) 
+        
+    
+    numyrsh = 100
+    yearshst = np.linspace(0,5,numyrsh)
+    numlamhst = np.linspace(20,50,numyrsh,dtype=int)
+    NFhst = np.linspace(4.5,5.0,numyrsh)
+    
+    sdh1 = np.linspace(0.04,0.06,numyrsh)  # normal ageing 
+    sdh2 = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
+    sdh3 = np.linspace(0.04,0.1,numyrsh)  # normal ageing
+    sdh4 = np.linspace(0.04,0.12,numyrsh)  # normal ageing
+    sh = np.empty([4,numyrsh])
+    sh[0] = sdh1
+    sh[1] = sdh2
+    sh[2] = sdh3
+    sh[3] = sdh4
+
+    #sdh = 0.04 + 0.0004*yearsh**2
+    #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
+    #sdh = 0.04 + (0.36/10**0.5)*yearsh**0.5
+    #sdh = 0.04 + 8e-4*yearsh**2
+    alphahst = 0.2 + 0.00163669*yearshst
+    hetdata = np.empty([numyrsh,numedgesA])
+    trxagingh = ((1 + 0.05*yearshst)*2).reshape(np.size(yearshst),1) 
+    
+    oxcagingh = ((0.03 + 0.007*yearshst)*2).reshape(np.size(yearshst),1)
+    #linkPopt = np.empty([numyears,1])
+
+    plt.plot(yearshst, sh[0], label = 'linear')
+    #plt.plot(yearsh, sdh2, label = 'quadratic')
+    #plt.plot(yearsh, sdh3, label = 'square root')
+    plt.xlabel("time (years)")
+    plt.ylabel("$\sigma$(dB)")
+    plt.legend()
+    #plt.savefig('sigmavstime.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
+
+    plt.plot(yearshst, trxagingh, label = 'linear')
+    plt.xlabel("time (years)")
+    plt.ylabel("TRx ageing penalty (dB)")
+    plt.legend()
+    #plt.savefig('TRxageing.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
+ 
+    
+    hetdata = np.empty([4,numyrsh])
+    for i in range(4):
+        for j in range(numyrsh):
+            hetdata[i][j] = datatshetdv(1200, 80, numlamhst[j], NFhst[j], sh[i][j], alphahst[j], j, False)
+    #np.savetxt('hetdata.csv', hetdata, delimiter=',')
+    np.savetxt('hetdataextdegdv.csv', hetdata, delimiter=',')
+
+# %%
