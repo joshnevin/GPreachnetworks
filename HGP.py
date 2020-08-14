@@ -25,10 +25,10 @@ from scipy.stats import norm
 import math
 #matplotlib.rc_file_defaults()   # use to return to Matplotlib defaults 
 
-snr = np.genfromtxt(open("hetdata.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
+snr = np.genfromtxt(open("hetdataextdegdv.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
 numpoints = np.size(snr,1)
 numedges = np.size(snr,0)#x = np.linspace(0,numpoints-1,numpoints)
-x = np.linspace(0,10,numpoints)
+x = np.linspace(0,1,numpoints)
 # 
 #SNR = SNR[0]
 #snr = snr[0:1]
@@ -171,8 +171,8 @@ def HGPfunc(x,y,plot):
             #k1is4,k2is4  = np.random.uniform(1e-2,1e2,2)
             #k1is3, k1is4  =  np.random.uniform(1e-2,1e2,2)
             #k2is3, k2is4  =  np.random.uniform(1e-1,1e2,2)
-            k1is3, k1is4  =  np.random.uniform(1e-3,1e3,2)
-            k2is3, k2is4  =  np.random.uniform(1e-3,1e3,2)
+            k1is3  =  np.random.uniform(1e-3,1e3,1)
+            k2is3  =  np.random.uniform(1e-3,1e3,1)
             z = np.empty([n,1])
             for j in range(n):
                 #np.random.seed()
@@ -229,7 +229,7 @@ def HGPfunc(x,y,plot):
     numiters = 20
     numrestarts = 5
     start_time = time.time()
-    fmstf,varfmstf, lmloptf, MSE, rf,NLPD = hetloopSK(ystar1,var1,numiters,numrestarts)
+    fmstf,varfmstf, _, _, _,_ = hetloopSK(ystar1,var1,numiters,numrestarts)
     duration = time.time() - start_time
 
     ind = numiters - 1
@@ -374,7 +374,8 @@ ax.set_xlim([x[0], x[-1]])
 #ax.set_yticklabels(ylab)
 #plt.axis([-1,100,1.0,8.0])
 plt.legend()
-plt.savefig('JOCNhetGP.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('JOCNhetGP.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPextdegst.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 # 
 # %%
@@ -383,16 +384,34 @@ plt.show()
 
 f, ax = plt.subplots()
 #xl = ['0','2','4', '6', '8', '10']
-ax.plot(x,sig[0],color='r',LineStyle=':',label='160 km')
-ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
-ax.plot(x,sig[2],color='g',LineStyle='-.',label= '960 km')
-ax.plot(x,sig[3],color='b',LineStyle='-.',label= '1200 km')
-ax.plot(x,sig[4],color='y',LineStyle='-.',label= '1600 km')
-ax.plot(x,sig[5],color='c',LineStyle='-.',label= '2400 km')
+#ax.plot(x,sig[0],color='r',LineStyle=':',label='160 km')
+#ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
+#ax.plot(x,sig[2],color='g',LineStyle='-.',label= '960 km')
+#ax.plot(x,sig[3],color='b',LineStyle='-.',label= '1200 km')
+#ax.plot(x,sig[4],color='y',LineStyle='-.',label= '1600 km')
+#ax.plot(x,sig[5],color='c',LineStyle='-.',label= '2400 km')
 
-sdhet = np.linspace(0.04,0.08,numpoints)
+ax.plot(x,sig[0],color='r',LineStyle=':',label='ex 1')
+ax.plot(x,sig[1],color='m',LineStyle='-.',label='ex 1')
+ax.plot(x,sig[2],color='g',LineStyle='-.',label= 'ex 3')
+ax.plot(x,sig[3],color='b',LineStyle='-.',label= 'ex 4')
 
-ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
+#sdhet = np.linspace(0.04,0.08,numpoints)
+numyrsh = 100
+#sdh1 = np.linspace(0.04,0.06,int(numyrsh/2)+1)
+#sdh2 = np.linspace(0.0604,0.1,int(numyrsh/2)-1)
+#sdhet = np.append(sdh1,sdh2)
+
+sdhet1 = np.linspace(0.04,0.06,numpoints)
+sdhet2 = np.linspace(0.04,0.08,numpoints)
+sdhet3 = np.linspace(0.04,0.1,numpoints)
+sdhet4 = np.linspace(0.04,0.12,numpoints)
+
+#ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
+ax.plot(x,sdhet1,color='r',label='Eq. (1) $\sigma(t)$ 1')
+ax.plot(x,sdhet2,color='m',label='Eq. (1) $\sigma(t)$ 2')
+ax.plot(x,sdhet3,color='g',label='Eq. (1) $\sigma(t)$ 3')
+ax.plot(x,sdhet4,color='b',label='Eq. (1) $\sigma(t)$ 4')
 #plt.plot(x,sigrf[ind],color='k',LineStyle='-',label='$\sqrt{r(x)}$ 1')
 
 ax.set_xlabel("time (years)")
@@ -403,7 +422,8 @@ ax.set_xlim([x[0], x[-1]])
 #ax.set_xticklabels(xl)
 ax.legend(loc=2,ncol=2, prop={'size': 11})
 
-plt.savefig('JOCNhetgpsig.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('JOCNhetgpsig.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('hetgpsigextdegdv.pdf', dpi=200,bbox_inches='tight')
 #plt.axis([x[0],x[-1],0.03,0.09])
 #plt.xticklabels()
 plt.show()
@@ -440,26 +460,32 @@ ln6 = ax1.fill(np.concatenate([x, x[::-1]]),
          alpha=0.3, fc='g', ec='None')
 ln7 = ax2.plot(x,sig[ind],color='m',LineStyle='-.',label='$R(time)$')
 
-ln8 = ax2.plot(x,sdhet,color='k',label='true noise SD')
+ln8 = ax2.plot(x,sdhet3,color='k',label='Eq. (1) $\sigma(t)$')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("SNR (dB)")
-ax2.set_ylabel("uncertainty SD (dB)")
+ax2.set_ylabel("SNR $\sigma$ (dB)")
     
 ax1.set_xlim([x[0], x[-1]])
-ax1.set_ylim([13,15.5])
-ax2.set_ylim([0.03,0.085])
+#ax1.set_ylim([13,15.5])
+#ax2.set_ylim([0.03,0.085])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
 lns = ln4+ln5+ln7+ln8
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs,loc=2, ncol=4, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
-plt.savefig('hetGPexample.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPexample.pdf', dpi=200,bbox_inches='tight')
+
+plt.savefig('hetGPexampleextdegdv.pdf', dpi=200,bbox_inches='tight')
 
 plt.show()
 
-   
-    
+# %%
+
+plt.plot(x,snr[1],'+')
+
+plt.show()
+
 
 # %%
