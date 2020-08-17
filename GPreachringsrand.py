@@ -924,7 +924,7 @@ plt.savefig('UmarginGPbenefitrd' + str(suffix) + '.pdf', dpi=200,bbox_inches='ti
 plt.show()
 
 
-# %% heteroscedastic data generation
+# %% heteroscedastic data generation: normal increase in SNR st. dev. and ageing, linear loading 
 hetdatagen = True
 if hetdatagen:
     def datatshet(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
@@ -979,26 +979,27 @@ if hetdatagen:
                 Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*BchRS*1e9*numspans
             Pch = 1e-3*10**(Popt/10) 
             if nyqch:            
-                #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
-                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             else:            
-                #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
-                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
             #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
             sdnorm = sd # noise on each link is assumed to be proportional to the link length 
             return lin2db(snr) + np.random.normal(0,sdnorm,1) 
         
     
-    numyrsh = 100
+    numyrsh = 200
     yearsh = np.linspace(0,10,numyrsh)
-    numlamh = np.linspace(20,80,numyrsh,dtype=int)
+    #numlamh = np.linspace(20,80,numyrsh,dtype=int)
+    numlamh = [int(13*1.2**(i/10)) for i in range(numyrsh)]
     NFh = np.linspace(4.5,5.5,numyrsh)
-    #sdh = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
-    sdh1 = np.linspace(0.04,0.06,int(numyrsh/2)+1)  # increase in ageing rate 
-    sdh2 = np.linspace(0.0604,0.1,int(numyrsh/2)-1) # increase in ageing rate 
+    sdh = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
+    #sdh1 = np.linspace(0.04,0.06,int(numyrsh/2)+1)  # increase in ageing rate 
+    #sdh2 = np.linspace(0.0604,0.1,int(numyrsh/2)-1) # increase in ageing rate 
 
-    sdh = np.append(sdh1,sdh2)
+    #sdh = np.append(sdh1,sdh2)
    
     #sdh = 0.04 + 0.0004*yearsh**2
     #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
@@ -1007,9 +1008,9 @@ if hetdatagen:
     alphah = 0.2 + 0.00163669*yearsh
     hetdata = np.empty([numyrsh,numedgesA])
     trxagingh = ((1 + 0.05*yearsh)*2).reshape(np.size(yearsh),1) 
-    trxaginghextdeg1 = [((1 + 0.05*yearsh[i])*2) for i in range(int(numyrsh/2))] 
-    trxaginghextdeg2 = [((trxaginghextdeg1[-1]/2 + 0.1*yearsh[i])*2) for i in range(int(numyrsh/2))] 
-    trxaginghextdeg = np.append(trxaginghextdeg1, trxaginghextdeg2)
+    #trxaginghextdeg1 = [((1 + 0.05*yearsh[i])*2) for i in range(int(numyrsh/2))] 
+    #trxaginghextdeg2 = [((trxaginghextdeg1[-1]/2 + 0.1*yearsh[i])*2) for i in range(int(numyrsh/2))] 
+    #trxaginghextdeg = np.append(trxaginghextdeg1, trxaginghextdeg2)
     oxcagingh = ((0.03 + 0.007*yearsh)*2).reshape(np.size(yearsh),1)
     #linkPopt = np.empty([numyears,1])
 
@@ -1022,7 +1023,7 @@ if hetdatagen:
     plt.savefig('sigmavstime.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
-    plt.plot(yearsh, trxaginghextdeg, label = 'linear')
+    plt.plot(yearsh, trxagingh, label = 'linear')
     plt.xlabel("time (years)")
     plt.ylabel("TRx ageing penalty (dB)")
     plt.legend()
@@ -1035,7 +1036,8 @@ if hetdatagen:
         for j in range(numyrsh):
             hetdata[i][j] = datatshet(testlens[i], 80, numlamh[j], NFh[j], sdh[j], alphah[j], j, False)
     #np.savetxt('hetdata.csv', hetdata, delimiter=',')
-    np.savetxt('hetdataextdeg.csv', hetdata, delimiter=',')
+    np.savetxt('hetdata20.csv', hetdata, delimiter=',')
+    #np.savetxt('hetdataextdeg.csv', hetdata, delimiter=',')
 
 # %% heteroscedastic data gen for 1 year with a sudden increase in the TRx penalty 
 
@@ -1105,7 +1107,8 @@ if hetdatagen:
     
     numyrsh = 100
     yearshst = np.linspace(0,1,numyrsh)
-    numlamhst = np.linspace(20,26,numyrsh,dtype=int)
+    #numlamhst = np.linspace(20,26,numyrsh,dtype=int)
+    numlamhst = [int(20*1.2**(i/100)) for i in range(100)]
     NFhst = np.linspace(4.5,4.6,numyrsh)
     #sdh = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
     sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)  # increase in ageing rate 
@@ -1150,7 +1153,7 @@ if hetdatagen:
     #np.savetxt('hetdata.csv', hetdata, delimiter=',')
     np.savetxt('hetdataextdegst.csv', hetdata, delimiter=',')
 
-# %%
+# %% heteroscedastic data for different variance links 
 
 if hetdatagen:
     def datatshetdv(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
@@ -1216,20 +1219,22 @@ if hetdatagen:
             return lin2db(snr) + np.random.normal(0,sdnorm,1) 
         
     
-    numyrsh = 100
+    numyrsh = 200
     yearshst = np.linspace(0,5,numyrsh)
-    numlamhst = np.linspace(20,50,numyrsh,dtype=int)
+    #numlamhst = [int(13*1.2**(i/20)) for i in range(100)]
+    numlamhst = [int(13*1.2**(i/40)) for i in range(200)]
     NFhst = np.linspace(4.5,5.0,numyrsh)
-    
+    numlps = 3
+
     sdh1 = np.linspace(0.04,0.06,numyrsh)  # normal ageing 
     sdh2 = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
-    sdh3 = np.linspace(0.04,0.1,numyrsh)  # normal ageing
-    sdh4 = np.linspace(0.04,0.12,numyrsh)  # normal ageing
-    sh = np.empty([4,numyrsh])
+    sdh3 = np.linspace(0.04,0.16,numyrsh)  # normal ageing
+    
+    sh = np.empty([numlps,numyrsh])
     sh[0] = sdh1
     sh[1] = sdh2
     sh[2] = sdh3
-    sh[3] = sdh4
+    
 
     #sdh = 0.04 + 0.0004*yearsh**2
     #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
@@ -1259,10 +1264,10 @@ if hetdatagen:
     plt.show()
  
     
-    hetdata = np.empty([4,numyrsh])
-    for i in range(4):
+    hetdata = np.empty([numlps,numyrsh])
+    for i in range(numlps):
         for j in range(numyrsh):
-            hetdata[i][j] = datatshetdv(1200, 80, numlamhst[j], NFhst[j], sh[i][j], alphahst[j], j, False)
+            hetdata[i][j] = datatshetdv(1600, 80, numlamhst[j], NFhst[j], sh[i][j], alphahst[j], j, False)
     #np.savetxt('hetdata.csv', hetdata, delimiter=',')
     np.savetxt('hetdataextdegdv.csv', hetdata, delimiter=',')
 

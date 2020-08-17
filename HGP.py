@@ -28,7 +28,7 @@ import math
 snr = np.genfromtxt(open("hetdataextdegdv.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
 numpoints = np.size(snr,1)
 numedges = np.size(snr,0)#x = np.linspace(0,numpoints-1,numpoints)
-x = np.linspace(0,1,numpoints)
+x = np.linspace(0,10,numpoints)
 # 
 #SNR = SNR[0]
 #snr = snr[0:1]
@@ -339,7 +339,7 @@ font = { 'family' : 'sans-serif',
                 'size'   : 15}
 matplotlib.rc('font', **font)
 
-ind = 2
+ind = 0
 f, ax = plt.subplots()
 ax.plot(x,snr[ind],'+')
 ax.plot(x,prmn[ind],color='k')
@@ -376,6 +376,7 @@ ax.set_xlim([x[0], x[-1]])
 plt.legend()
 #plt.savefig('JOCNhetGP.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetGPextdegst.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('hetGPextdegdvmoredata.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 # 
 # %%
@@ -394,24 +395,27 @@ f, ax = plt.subplots()
 ax.plot(x,sig[0],color='r',LineStyle=':',label='ex 1')
 ax.plot(x,sig[1],color='m',LineStyle='-.',label='ex 1')
 ax.plot(x,sig[2],color='g',LineStyle='-.',label= 'ex 3')
-ax.plot(x,sig[3],color='b',LineStyle='-.',label= 'ex 4')
 
-#sdhet = np.linspace(0.04,0.08,numpoints)
-numyrsh = 100
-#sdh1 = np.linspace(0.04,0.06,int(numyrsh/2)+1)
-#sdh2 = np.linspace(0.0604,0.1,int(numyrsh/2)-1)
+
+# for standard heteroscedastic experiment 
+#sdhet = np.linspace(0.04,0.06,numpoints)
+numyrsh = 200
+# for simulation of TRx fault 
+#sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)
+#sdh2 = np.linspace(0.1,0.102,int(numyrsh/2)-1)
 #sdhet = np.append(sdh1,sdh2)
 
+# for comparison of different variances 
 sdhet1 = np.linspace(0.04,0.06,numpoints)
 sdhet2 = np.linspace(0.04,0.08,numpoints)
-sdhet3 = np.linspace(0.04,0.1,numpoints)
-sdhet4 = np.linspace(0.04,0.12,numpoints)
+sdhet3 = np.linspace(0.04,0.16,numpoints)
+#sdhet4 = np.linspace(0.04,0.12,numpoints)
 
-#ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
+ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
 ax.plot(x,sdhet1,color='r',label='Eq. (1) $\sigma(t)$ 1')
 ax.plot(x,sdhet2,color='m',label='Eq. (1) $\sigma(t)$ 2')
 ax.plot(x,sdhet3,color='g',label='Eq. (1) $\sigma(t)$ 3')
-ax.plot(x,sdhet4,color='b',label='Eq. (1) $\sigma(t)$ 4')
+#ax.plot(x,sdhet4,color='b',label='Eq. (1) $\sigma(t)$ 4')
 #plt.plot(x,sigrf[ind],color='k',LineStyle='-',label='$\sqrt{r(x)}$ 1')
 
 ax.set_xlabel("time (years)")
@@ -423,7 +427,9 @@ ax.set_xlim([x[0], x[-1]])
 ax.legend(loc=2,ncol=2, prop={'size': 11})
 
 #plt.savefig('JOCNhetgpsig.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('hetgpsigextdegdv.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetgpsig20moredata.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('hetgpsigdvmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetgpsigst.pdf', dpi=200,bbox_inches='tight')
 #plt.axis([x[0],x[-1],0.03,0.09])
 #plt.xticklabels()
 plt.show()
@@ -460,7 +466,7 @@ ln6 = ax1.fill(np.concatenate([x, x[::-1]]),
          alpha=0.3, fc='g', ec='None')
 ln7 = ax2.plot(x,sig[ind],color='m',LineStyle='-.',label='$R(time)$')
 
-ln8 = ax2.plot(x,sdhet3,color='k',label='Eq. (1) $\sigma(t)$')
+ln8 = ax2.plot(x,sdhet1,color='k',label='Eq. (1) $\sigma(t)$')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("SNR (dB)")
@@ -468,16 +474,16 @@ ax2.set_ylabel("SNR $\sigma$ (dB)")
     
 ax1.set_xlim([x[0], x[-1]])
 #ax1.set_ylim([13,15.5])
-#ax2.set_ylim([0.03,0.085])
+ax2.set_ylim([0.03,0.09])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
 lns = ln4+ln5+ln7+ln8
 labs = [l.get_label() for l in lns]
-ax1.legend(lns, labs,loc=2, ncol=4, prop={'size': 10})
+ax1.legend(lns, labs,loc=1, ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
-#plt.savefig('hetGPexample.pdf', dpi=200,bbox_inches='tight')
-
-plt.savefig('hetGPexampleextdegdv.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('hetGPexampledvmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPexamplest.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPexample20moredata.pdf', dpi=200,bbox_inches='tight')
 
 plt.show()
 
