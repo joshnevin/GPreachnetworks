@@ -26,7 +26,89 @@ from sklearn.preprocessing import StandardScaler
 import cProfile
 #from scipy.special import erfc
 
-# section 1: find the shortest and second shortest paths for each node pair and start to fill network 
+MSdata = False
+if MSdata:
+    def mssdcalc(f, clipind):
+        clipind = int(clipind)
+        numsamples = 1000 #32252
+        msd = np.empty([numsamples,1])
+        next(f)
+        for i in range(numsamples):
+            msdl = f.readline()
+            msd[i] = msdl[20:clipind].strip()
+        #msber = 0.5*erfc(msd/(2**0.5))
+        #msvar = np.var(msber)
+        msvar = np.var(msd)
+        mssd = msvar**0.5
+        return mssd
+    numchannels = 150
+    numchannels2 = 190
+    numchannels3 = 270
+    numchannels4 = 240
+    sg1sd = np.empty([numchannels,1])  # segments 1 - 5 
+    sg2sd = np.empty([numchannels2,1]) # segments 7 - 11 
+    sg3sd = np.empty([numchannels3,1]) # segments 50 - 55 
+    sg4sd = np.empty([numchannels4,1]) # segments 95 - 100 
+    for i in range(numchannels):
+        #print(i)
+        if i < 40: 
+            sg1sd[i] = mssdcalc(open("channel_" + str(i+1) + "_segment_1.txt", "r"), 25)
+        elif i < 60:
+            sg1sd[i] = mssdcalc(open("channel_" + str(i+1) + "_segment_2.txt", "r"), 25)
+        elif i < 100:
+            sg1sd[i] = mssdcalc(open("channel_" + str(i+1) + "_segment_3.txt", "r"), 25)
+        elif i < 130:
+            sg1sd[i] = mssdcalc(open("channel_" + str(i+1) + "_segment_4.txt", "r"), 24)  
+        else:
+            sg1sd[i] = mssdcalc(open("channel_" + str(i+1) + "_segment_5.txt", "r"), 25)
+
+    for i in range(numchannels2):
+        if i < 240-numchannels2:
+            sg2sd[i] = mssdcalc(open("channel_" + str(i+191) + "_segment_7.txt", "r"), 25)
+        elif i < 290-numchannels2:
+            sg2sd[i] = mssdcalc(open("channel_" + str(i+191) + "_segment_8.txt", "r"), 25)
+        elif i < 330-numchannels2:
+            sg2sd[i] = mssdcalc(open("channel_" + str(i+191) + "_segment_9.txt", "r"), 25)
+        elif i < 360-numchannels2:
+            sg2sd[i] = mssdcalc(open("channel_" + str(i+191) + "_segment_10.txt", "r"), 25)
+        else:
+            sg2sd[i] = mssdcalc(open("channel_" + str(i+191) + "_segment_11.txt", "r"), 25)
+            
+    for i in range(numchannels3):
+        if i < 1840-1790:
+            sg3sd[i] = mssdcalc(open("channel_" + str(i+1791) + "_segment_50.txt", "r"), 25)
+        elif i < 1890-1790:
+            sg3sd[i] = mssdcalc(open("channel_" + str(i+1791) + "_segment_51.txt", "r"), 25)
+        elif i < 1930-1790:
+            sg3sd[i] = mssdcalc(open("channel_" + str(i+1791) + "_segment_52.txt", "r"), 24)
+        elif i < 1980-1790:
+            sg3sd[i] = mssdcalc(open("channel_" + str(i+1791) + "_segment_53.txt", "r"), 25)
+        elif i < 2010-1790:
+            sg3sd[i] = mssdcalc(open("channel_" + str(i+1791) + "_segment_54.txt", "r"), 25)
+        else:
+            sg3sd[i] = mssdcalc(open("channel_" + str(i+1791) + "_segment_55.txt", "r"), 25)
+
+    for i in range(numchannels4):
+        if i < 3310-3250:
+            sg4sd[i] = mssdcalc(open("channel_" + str(i+3251) + "_segment_95.txt", "r"), 25)
+        elif i < 3360-3250:
+            sg4sd[i] = mssdcalc(open("channel_" + str(i+3251) + "_segment_96.txt", "r"), 25)
+        elif i < 3410-3250:
+            sg4sd[i] = mssdcalc(open("channel_" + str(i+3251) + "_segment_97.txt", "r"), 24)
+        elif i < 3420-3250:
+            sg4sd[i] = mssdcalc(open("channel_" + str(i+3251) + "_segment_98.txt", "r"), 25)
+        elif i < 3450-3250:
+            sg4sd[i] = mssdcalc(open("channel_" + str(i+3251) + "_segment_99.txt", "r"), 25)
+        else:
+            sg4sd[i] = mssdcalc(open("channel_" + str(i+3251) + "_segment_100.txt", "r"), 25)
+        
+    sg1sdmean = np.mean(sg1sd)
+    sg2sdmean = np.mean(sg2sd)
+    sg3sdmean = np.mean(sg3sd)
+    sg4sdmean = np.mean(sg4sd)
+    sgtotmean = (sg1sdmean + sg2sdmean + sg3sdmean + sg4sdmean)/4
+
+# %% section 1: find the shortest and second shortest paths for each node pair and start to fill network 
 
 nodesT = ['1','2','3','4','5','6','7','8','9','10']
 
@@ -42,18 +124,20 @@ numnodesT = 10
 numedgesT = 20
 LspansT = 100
 
-nodesB = ['1','2','3','4','5','6','7','8','9','10','11']
+nodesB = ['1','2','3','4','5','6','7','8','9','10','11','12','13']
 
-graphB = {'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
+graphB = {'1':{'2':720,'13':80},'2':{'1':720,'3':160},'3':{'2':160,'4':240},    
          '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
-         '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'1':160}
+         '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'12':160},
+         '12':{'11':160,'13':240}, '13':{'12':240,'1':80}
          }
-edgesB = {'1':{'2':0,'11':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
+edgesB = {'1':{'2':0,'13':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
          '4':{'3':6,'5':7},'5':{'4':8,'6':9},'6':{'5':10,'7':11}, '7':{'6':12,'8':13},
-         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'9':18,'11':19}, '11':{'10':20,'1':21}
+         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'9':18,'11':19}, '11':{'10':20,'12':21},
+         '12':{'11':22,'13':23}, '13':{'12':24,'1':25}
          }
-numnodesB = 11
-numedgesB = 22
+numnodesB = 13
+numedgesB = 26
 LspansB = 80
 
 nodesD = ['1','2','3','4','5','6','7','8','9','10','11','12']
@@ -125,17 +209,19 @@ def findroutes(nodes, secondpath):
             for j in range(numnodes): 
                 if i == j:
                     continue
-                d, p = dijkstra({'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
-                                 '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
-                                 '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'1':160}
+                d, p = dijkstra({'1':{'2':720,'13':80},'2':{'1':720,'3':160},'3':{'2':160,'4':240},    
+                                '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
+                                '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'12':160},
+                                 '12':{'11':160,'13':240}, '13':{'12':240,'1':80}
                                  } , nodes[i], nodes[j])
                 dis.append(d)
                 path.append(p)
                 if secondpath:
-                    shgraph = removekey({'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
+                    shgraph = removekey({'1':{'2':720,'13':80},'2':{'1':720,'3':160},'3':{'2':160,'4':240},    
                                          '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
-                                         '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'1':160}
-                                         }, p[0],p[1])
+                                         '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'12':160},
+                                         '12':{'11':160,'13':240}, '13':{'12':240,'1':80}
+                                          }, p[0],p[1])
                     d2, p2 = dijkstra(shgraph , nodes[i], nodes[j])
                     dis.append(d2)
                     path.append(p2)
@@ -646,7 +732,7 @@ if graphA == graphB:
     np.savetxt('rtmshcpB.csv', rtmshcp, delimiter=',') 
 
 # %% import data
-importdata = True
+importdata = False
 if importdata:
     if graphA == graphD:
         gpmf = np.genfromtxt(open("gpmfD.csv", "r"), delimiter=",", dtype =float)
@@ -730,6 +816,12 @@ totthrptgp, totUmgp, totthrptdiffgp,totgpshcp, totthrptrtm, totUmrtm, totthrptdi
 
 # %%
 
+thrptareagp = sum([ (1.5*totthrptgp[i] - 0.5*totthrptgp[i+1])*15778800 for i in range(numyears-1)  ])/1e9
+thrptareartm = sum([ (1.5*totthrptrtm[i] - 0.5*totthrptrtm[i+1])*15778800 for i in range(numyears-1)  ])/1e9
+thrptareafm = totthrptfm[0]*315576000/1e9
+
+# %%
+
 if graphA == graphD:
     np.savetxt('totthrptgpD.csv', totthrptgp, delimiter=',') 
     np.savetxt('totthrptfmD.csv', totthrptfm, delimiter=',') 
@@ -782,7 +874,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('totalthrptnoloadingD.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptnoloadingB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 
@@ -813,7 +905,7 @@ ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('JOCNtotalthrpt.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('totalthrptdiffnoloadingD.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptdiffnoloadingB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
     
 # %%
@@ -852,7 +944,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('UmarginGPbenefitnoloadingD.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('UmarginGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 # %%
@@ -875,7 +967,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('speceffGPbenefitnoloadingD.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('speceffGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 

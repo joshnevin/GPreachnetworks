@@ -44,18 +44,20 @@ numnodesT = 10
 numedgesT = 20
 LspansT = 100
 
-nodesB = ['1','2','3','4','5','6','7','8','9','10','11']
+nodesB = ['1','2','3','4','5','6','7','8','9','10','11','12','13']
 
-graphB = {'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
+graphB = {'1':{'2':720,'13':80},'2':{'1':720,'3':160},'3':{'2':160,'4':240},    
          '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
-         '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'1':160}
+         '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'12':160},
+         '12':{'11':160,'13':240}, '13':{'12':240,'1':80}
          }
-edgesB = {'1':{'2':0,'11':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
+edgesB = {'1':{'2':0,'13':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
          '4':{'3':6,'5':7},'5':{'4':8,'6':9},'6':{'5':10,'7':11}, '7':{'6':12,'8':13},
-         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'9':18,'11':19}, '11':{'10':20,'1':21}
+         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'9':18,'11':19}, '11':{'10':20,'12':21},
+         '12':{'11':22,'13':23}, '13':{'12':24,'1':25}
          }
-numnodesB = 11
-numedgesB = 22
+numnodesB = 13
+numedgesB = 26
 LspansB = 80
 
 nodesD = ['1','2','3','4','5','6','7','8','9','10','11','12']
@@ -72,7 +74,7 @@ numnodesD = 12
 numedgesD = 24
 LspansD = 80
 
-graphA = graphD # select the topology under test 
+graphA = graphB # select the topology under test 
 if graphA == graphT:
     numnodesA = numnodesT
     numedgesA = numedgesT
@@ -525,17 +527,19 @@ def findroutesrand(nodes, secondpath, numreq):
     if graphA == graphB:
         for _ in range(numreq):           
             srcnd, desnd = requestgen(graphA)
-            d, p = dijkstra({'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
-                             '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
-                             '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'1':160}
+            d, p = dijkstra({'1':{'2':720,'13':80},'2':{'1':720,'3':160},'3':{'2':160,'4':240},    
+                            '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
+                            '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'12':160},
+                             '12':{'11':160,'13':240}, '13':{'12':240,'1':80}
                              } , srcnd, desnd)
             dis.append(d)
             path.append(p)
             if secondpath:
-                shgraph = removekey({'1':{'2':160,'11':160},'2':{'1':160,'3':160},'3':{'2':160,'4':240},    
-                                     '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
-                                     '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'1':160}
-                                     }, p[0],p[1])  # remove the first link of the shortest path, between the first two nodes traversed
+                shgraph = removekey({'1':{'2':720,'13':80},'2':{'1':720,'3':160},'3':{'2':160,'4':240},    
+                                    '4':{'3':240,'5':160},'5':{'4':160,'6':80},'6':{'5':80,'7':240}, '7':{'6':240,'8':80},
+                                     '8':{'7':80,'9':400}, '9':{'8':400,'10':160}, '10':{'9':160,'11':80}, '11':{'10':80,'12':160},
+                                     '12':{'11':160,'13':240}, '13':{'12':240,'1':80}
+                                      }, p[0],p[1])  # remove the first link of the shortest path, between the first two nodes traversed
                 d2, p2 = dijkstra(shgraph , srcnd, desnd)
                 dis.append(d2)
                 path.append(p2)
@@ -733,7 +737,7 @@ totthrptdiffrtm = ((totthrptrtm - totthrptfm)/totthrptfm)*100
 
 totthrptdiffsh = ((totgpshcp - totthrptfm)/totthrptfm)*100
 
-randiter = 5
+randiter = 4
 
 if graphA == graphT:
     np.savetxt('totthrptgpirdT' + str(randiter) + '.csv', totthrptgpi, delimiter=',') 
@@ -925,7 +929,7 @@ plt.show()
 
 
 # %% heteroscedastic data generation: normal increase in SNR st. dev. and ageing, linear loading 
-hetdatagen = True
+hetdatagen = False
 if hetdatagen:
     def datatshet(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
             Ls = Lspans
@@ -1105,14 +1109,14 @@ if hetdatagen:
             return lin2db(snr) + np.random.normal(0,sdnorm,1) 
         
     
-    numyrsh = 100
+    numyrsh = 200
     yearshst = np.linspace(0,1,numyrsh)
     #numlamhst = np.linspace(20,26,numyrsh,dtype=int)
-    numlamhst = [int(20*1.2**(i/100)) for i in range(100)]
+    numlamhst = [int(20*1.2**(i/numyrsh)) for i in range(numyrsh)]
     NFhst = np.linspace(4.5,4.6,numyrsh)
     #sdh = np.linspace(0.04,0.08,numyrsh)  # normal ageing 
     sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)  # increase in ageing rate 
-    sdh2 = np.linspace(0.1,0.102,int(numyrsh/2)-1) # increase in ageing rate 
+    sdh2 = np.linspace(0.08,0.082,int(numyrsh/2)-1) # increase in ageing rate 
 
     sdh = np.append(sdh1,sdh2)
    
