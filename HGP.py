@@ -25,40 +25,47 @@ from scipy.stats import norm
 import math
 #matplotlib.rc_file_defaults()   # use to return to Matplotlib defaults 
 
-snr = np.genfromtxt(open("hetdataextdegdv.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
+snr = np.genfromtxt(open("hetdata20.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
+#snr = np.genfromtxt(open("hetdataextdegdv.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
+#snr = np.genfromtxt(open("hetdataextdegst.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
 numpoints = np.size(snr,1)
-numedges = np.size(snr,0)#x = np.linspace(0,numpoints-1,numpoints)
+numedges = np.size(snr,0)
+#x = np.linspace(0,numpoints-1,numpoints)
 x = np.linspace(0,10,numpoints)
 # 
 #SNR = SNR[0]
 #snr = snr[0:1]
-    # data used by Goldberg - use for testing 
-    # =============================================================================
-    #numpoints = 100
-    #x = np.linspace(0,1,numpoints)
-    #sd = np.linspace(0.5,1.5,numpoints)
-    #y = np.zeros(numpoints)
-    #n = np.size(x)
-    #for i in range(numpoints):
-    #    y[i] = 2*np.sin(2*np.pi*x[i]) + np.random.normal(0, sd[i])
+# # data used by Goldberg - use for testing 
+# =============================================================================
+""" numpoints = 100
+numedges = 1
+x = np.linspace(0,1,numpoints).reshape(numpoints,numedges)
+sd = np.linspace(0.5,1.5,numpoints)
+y = np.zeros(numpoints)
+n = np.size(x)
+for i in range(numpoints):
+    y[i] = 2*np.sin(2*np.pi*x[i]) + np.random.normal(0, sd[i])
+snr = y.reshape(numpoints,numedges) """
     # =============================================================================
     
     # data used by Yuan and Wahba - use for testing 
     # =============================================================================
-    #numpoints = 200
-    #x = np.linspace(0,1,numpoints)  
-    #ymean = 2*(exp(-30*(x-0.25)**2) + np.sin(np.pi*x**2)) - 2
-    #ysd = exp(np.sin(2*np.pi*x))
-    #y = np.random.normal(ymean, ysd)
+""" numpoints = 200
+x = np.linspace(0,1,numpoints)  
+ymean = 2*(exp(-30*(x-0.25)**2) + np.sin(np.pi*x**2)) - 2
+sd = exp(np.sin(2*np.pi*x))
+y = np.random.normal(ymean, sd)
+snr = y """
     # =============================================================================
     
     # data used by Williams - use for testing 
-    #numpoints = 200
-    #x = np.linspace(0,np.pi,numpoints)
-    #wmean = np.sin(2.5*x)*np.sin(1.5*x)
-    #wsd = 0.01 + 0.25*(1 - np.sin(2.5*x))**2
-    #y = np.random.normal(wmean, wsd)
-    
+""" numpoints = 200
+x = np.linspace(0,np.pi,numpoints)
+wmean = np.sin(2.5*x)*np.sin(1.5*x)
+sd = 0.01 + 0.25*(1 - np.sin(2.5*x))**2
+y = np.random.normal(wmean, sd)
+snr = y """
+
 def HGPfunc(x,y,plot):
     y = y.reshape(-1,1)
     x = x.reshape(-1,1)
@@ -133,10 +140,10 @@ def HGPfunc(x,y,plot):
         for i in range(numrestarts):    
             #k1is4 = np.random.uniform(1e-2,1e3)
             #k2is4 = np.random.uniform(1e-1,1e3)
-            k1is4 = np.random.uniform(1e-3,1e3)
-            k2is4 = np.random.uniform(1e-3,1e3)
+            k1is4 = np.random.uniform(1e-2,1e3)
+            k2is4 = np.random.uniform(1e-2,1e3)
             kis4 = np.ndarray((numh,), buffer=np.array([k1is4,k2is4]), dtype = float)
-            s4res = minimize(lmlh,kis4,args=(y,R),method = 'L-BFGS-B',jac=lmlgh,bounds = ((1e-2,1e3),(1e-2,1e3)),options={'maxiter':1e4})
+            s4res = minimize(lmlh,kis4,args=(y,R),method = 'L-BFGS-B',jac=lmlgh,bounds = ((1e-2,1e3),(1e-2,1e3)),options={'maxiter':1e3})
             step4res = []
             if s4res.success:
                 step4res.append(s4res.x)
@@ -144,8 +151,8 @@ def HGPfunc(x,y,plot):
                 #raise ValueError(s4res.message)
                 #k1is4 = np.random.uniform(1e-2,1e3)
                 #k2is4 = np.random.uniform(2e-1,1e3)
-                k1is4 = np.random.uniform(1e-3,1e3)
-                k2is4 = np.random.uniform(1e-3,1e3)
+                k1is4 = np.random.uniform(1e-2,1e3)
+                k2is4 = np.random.uniform(1e-2,1e3)
                 print("error in hypopth() - reinitialising hyperparameters")
                 continue 
             k1s4[i] = step4res[0][0]
@@ -186,7 +193,7 @@ def HGPfunc(x,y,plot):
                 
                 continue
             #  Step 3: estimate GP2 on D' - (x,z)
-            kernel2 = C(k1is3, (1e-2, 1e2)) * RBF(k2is3, (1e-2, 1e2)) 
+            kernel2 = C(k1is3, (1e-3, 1e3)) * RBF(k2is3, (1e-3, 1e3)) 
             gpr2 = GaussianProcessRegressor(kernel=kernel2, n_restarts_optimizer = numrestarts, normalize_y=False, alpha=np.var(z))
             
             gpr2.fit(x, z)
@@ -200,12 +207,16 @@ def HGPfunc(x,y,plot):
             # test for convergence 
             MSE[i] = (1/n)*sum(((y-fmst4)**2)/np.var(y))
             #NLPD[i] = sum([(1/n)*(-np.log(norm.pdf(x[j], fmst4[j], varfmst4[j]**0.5))) for j in range(n) ])
-            test3 = np.empty([n,1])
+            nlpdarg = np.zeros([n,1])
+            #nlpdtest = np.zeros([n,1])
             for k in range(n):
-                test3[k] = -np.log(norm.pdf(x[k], fmst[k], varfmst[k]**0.5))
-            NLPD[i] = sum(test3)*(1/n)
-            #print("MSE = " + str(MSE[i]))
-            #print("NLPD = " + str(NLPD[i]))
+                nlpdarg[k] = -np.log10(norm.pdf(x[k], fmst4[k], varfmst4[k]**0.5))
+                #nlpdtest[k] = norm.pdf(x[k], fmst4[k], varfmst4[k]**0.5)
+            #print("mean NLPD log arg " + str(nlpdtest) )
+                #test3[k] = -np.log(norm.pdf(x[k], fmst[k], varfmst[k]**0.5))
+            NLPD[i] = sum(nlpdarg)*(1/n)
+            print("MSE = " + str(MSE[i]))
+            print("NLPD = " + str(NLPD[i]))
             print("finished iteration " + str(i+1))
             fmstf[i,:] = fmst4.reshape(n)
             varfmstf[i,:] = varfmst4.reshape(n)
@@ -229,7 +240,7 @@ def HGPfunc(x,y,plot):
     numiters = 20
     numrestarts = 5
     start_time = time.time()
-    fmstf,varfmstf, _, _, _,_ = hetloopSK(ystar1,var1,numiters,numrestarts)
+    fmstf,varfmstf, lmlopt, mse, _,NLPD = hetloopSK(ystar1,var1,numiters,numrestarts)
     duration = time.time() - start_time
 
     ind = numiters - 1
@@ -314,15 +325,24 @@ def HGPfunc(x,y,plot):
         
     print("HGP fitting duration: " + str(duration)) 
     
-    return fmst4i, fmstps4i
-   
-# 
+    return fmst4i, fmstps4i, lmlopt, mse, NLPD
+
+numiters = 20
+
 prmn = np.empty([numedges,numpoints])
 prmnp = np.empty([numedges,numpoints])
+lml = np.empty([numedges,numiters])
+MSE = np.empty([numedges,numiters])
+NLPD = np.empty([numedges,numiters])
+
 for i in range(np.size(snr,0)):
-    prmn[i], prmnp[i] = HGPfunc(x,snr[i],False)
-# 
+    prmn[i], prmnp[i], lmls, MSEs, NLPDs = HGPfunc(x,snr[i],False)
+    lml[i] = lmls.reshape(numiters)
+    MSE[i] = MSEs.reshape(numiters)
+    NLPD[i] = NLPDs.reshape(numiters)
+#prmn, prmnp, lml, MSE, NLPD = HGPfunc(x,snr,False)
 sig = (prmnp - prmn)
+
 prmnp1 = prmn + sig    
 prmnn1 = prmn - sig
 prmnp2 = prmn + 2*sig
@@ -333,13 +353,101 @@ prmnp4 = prmn + 4*sig
 prmnn4 = prmn - 4*sig
 prmnp5 = prmn + 5*sig    
 prmnn5 = prmn - 5*sig
+
+
 # %%
+algtest = False
+if algtest:
+
+    font = { 'family' : 'sans-serif',
+                    'weight' : 'normal',
+                    'size'   : 15}
+    matplotlib.rc('font', **font)
+
+    f, ax = plt.subplots()
+    ax2 = ax.twinx()
+    ax.plot(x,snr,'+')
+    ax.plot(x,prmn,color='k')
+    ax.fill(np.concatenate([x, x[::-1]]),
+            np.concatenate([prmnp3,
+                            (prmnn3)[::-1]]),
+            alpha=0.3, fc='r', ec='None', label='$3 \sigma$')
+    # =============================================================================
+    # ax.fill(np.concatenate([x, x[::-1]]),
+    #          np.concatenate([prmnp3[ind],
+    #                         (prmnp1[ind])[::-1]]),
+    #          alpha=0.3, fc='r', ec='None', label='$3 \sigma$')
+    # ax.fill(np.concatenate([x, x[::-1]]),
+    #          np.concatenate([prmnn1[ind],
+    #                         (prmnn3[ind])[::-1]]),
+    #          alpha=0.3, fc='r', ec='None')
+    # =============================================================================
+    ax.fill(np.concatenate([x, x[::-1]]),
+            np.concatenate([prmnp5,
+                            (prmnp3)[::-1]]),
+            alpha=0.3, fc='g', ec='None', label='$5 \sigma$')
+    ax.fill(np.concatenate([x, x[::-1]]),
+            np.concatenate([prmnn3,
+                            (prmnn5)[::-1]]),
+            alpha=0.3, fc='g', ec='None')
+
+    ax2.plot(x, sig, '--', label="learned $\sigma$")
+    ax2.plot(x, sd, '-', label="true $\sigma$")
+    ax2.set_ylabel("$\sigma$")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_xlim([x[0], x[-1]])
+    #ax.set_ylim([6.4, 9.5])
+    #ax.set_xticklabels(xlab)
+    #ax.set_yticklabels(ylab)
+    plt.legend(ncol=1)
+    #plt.savefig('HGPtestgoldberg.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('HGPtestwilliams.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('HGPtestyuanwhaba.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
+
+    plt.plot(lml)
+    plt.ylabel("LML")
+    #plt.savefig('HGPtestgoldberglml.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('HGPtestwilliamslml.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('HGPtestyuanwhabalml.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
+
+    plt.plot(MSE)
+    plt.ylabel("MSE")
+    #plt.savefig('HGPtestgoldbergmse.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('HGPtestwilliamsmse.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('HGPtestyuanwhabamse.pdf', dpi=200,bbox_inches='tight')
+
+    plt.show()
+
+    plt.plot(NLPD)
+    plt.ylabel("NLPD")
+    #plt.savefig('HGPtestgoldbergnlpd.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('HGPtestgoldbergnlpd.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('HGPtestyuanwhabanlpd.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
+
+    """ f, ax = plt.subplots()
+    ax.plot(x, sig, '--', label="learned $\sigma$")
+    ax.plot(x, sd, '-', label="true $\sigma$")
+    ax.set_xlabel("x")
+    ax.set_ylabel("$\sigma$")
+    plt.savefig('HGPtestgoldbergsig.pdf', dpi=200,bbox_inches='tight')
+    plt.show() """
+
+
+# %%
+
+""" np.savetxt('hetprmnextdegst.csv', prmn, delimiter=',')
+np.savetxt('hetsigextdegst.csv', sig, delimiter=',') """
+
 font = { 'family' : 'sans-serif',
                 'weight' : 'normal',
                 'size'   : 15}
 matplotlib.rc('font', **font)
 
-ind = 0
+ind = 2
 f, ax = plt.subplots()
 ax.plot(x,snr[ind],'+')
 ax.plot(x,prmn[ind],color='k')
@@ -366,8 +474,8 @@ ax.fill(np.concatenate([x, x[::-1]]),
                         (prmnn5[ind])[::-1]]),
          alpha=0.3, fc='g', ec='None')
 
-ax.set_xlabel("time (years)")
-ax.set_ylabel("SNR (dB)")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
 ax.set_xlim([x[0], x[-1]])
 #ax.set_ylim([6.4, 9.5])
 #ax.set_xticklabels(xlab)
@@ -376,8 +484,35 @@ ax.set_xlim([x[0], x[-1]])
 plt.legend()
 #plt.savefig('JOCNhetGP.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetGPextdegst.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('hetGPextdegdvmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPextdegstmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPextdegdvmoredata.pdf', dpi=200,bbox_inches='tight')
 plt.show()
+
+# %%
+plt.plot(lml[ind])
+plt.ylabel("LML")
+#plt.savefig('HGPtestgoldberglml.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('HGPtestwilliamslml.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('HGPtestyuanwhabalml.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+plt.plot(MSE[ind])
+plt.ylabel("MSE")
+#plt.savefig('HGPtestgoldbergmse.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('HGPtestwilliamsmse.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('HGPtestyuanwhabamse.pdf', dpi=200,bbox_inches='tight')
+
+plt.show()
+
+plt.plot(NLPD[ind])
+plt.ylabel("NLPD")
+#plt.savefig('HGPtestgoldbergnlpd.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('HGPtestgoldbergnlpd.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('HGPtestyuanwhabanlpd.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+
+
 # 
 # %%
 
@@ -386,50 +521,50 @@ plt.show()
 f, ax = plt.subplots()
 #xl = ['0','2','4', '6', '8', '10']
 #ax.plot(x,sig[0],color='r',LineStyle=':',label='160 km')
-#ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
-#ax.plot(x,sig[2],color='g',LineStyle='-.',label= '960 km')
-#ax.plot(x,sig[3],color='b',LineStyle='-.',label= '1200 km')
-#ax.plot(x,sig[4],color='y',LineStyle='-.',label= '1600 km')
+ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
+ax.plot(x,sig[2],color='g',LineStyle='-.',label= '960 km')
+ax.plot(x,sig[3],color='b',LineStyle='-.',label= '1200 km')
+ax.plot(x,sig[4],color='r',LineStyle='-.',label= '1600 km')
 #ax.plot(x,sig[5],color='c',LineStyle='-.',label= '2400 km')
 
-ax.plot(x,sig[0],color='r',LineStyle=':',label='ex 1')
-ax.plot(x,sig[1],color='m',LineStyle='-.',label='ex 1')
-ax.plot(x,sig[2],color='g',LineStyle='-.',label= 'ex 3')
+""" ax.plot(x,sig[0],color='r',LineStyle='-.',label='A')
+ax.plot(x,sig[1],color='b',LineStyle='-.',label='B')
+ax.plot(x,sig[2],color='g',LineStyle='-.',label= 'C') """
 
 
 # for standard heteroscedastic experiment 
 #sdhet = np.linspace(0.04,0.06,numpoints)
 numyrsh = 200
 # for simulation of TRx fault 
-#sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)
-#sdh2 = np.linspace(0.1,0.102,int(numyrsh/2)-1)
-#sdhet = np.append(sdh1,sdh2)
+sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)
+sdh2 = np.linspace(0.08,0.082,int(numyrsh/2)-1)
+sdhet = np.append(sdh1,sdh2)
 
 # for comparison of different variances 
-sdhet1 = np.linspace(0.04,0.06,numpoints)
+""" sdhet1 = np.linspace(0.04,0.06,numpoints)
 sdhet2 = np.linspace(0.04,0.08,numpoints)
-sdhet3 = np.linspace(0.04,0.16,numpoints)
-#sdhet4 = np.linspace(0.04,0.12,numpoints)
+sdhet3 = np.linspace(0.04,0.16,numpoints) """
 
 ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
-ax.plot(x,sdhet1,color='r',label='Eq. (1) $\sigma(t)$ 1')
-ax.plot(x,sdhet2,color='m',label='Eq. (1) $\sigma(t)$ 2')
-ax.plot(x,sdhet3,color='g',label='Eq. (1) $\sigma(t)$ 3')
-#ax.plot(x,sdhet4,color='b',label='Eq. (1) $\sigma(t)$ 4')
+""" ax.plot(x,sdhet1,color='r',label='Eq. (1) $\sigma(t)$ A')
+ax.plot(x,sdhet2,color='b',label='Eq. (1) $\sigma(t)$ B')
+ax.plot(x,sdhet3,color='g',label='Eq. (1) $\sigma(t)$ C') """
+
 #plt.plot(x,sigrf[ind],color='k',LineStyle='-',label='$\sqrt{r(x)}$ 1')
 
 ax.set_xlabel("time (years)")
 ax.set_ylabel("SNR $\sigma$ (dB)")
 #ax2.set_ylabel("Shannon throughput gain (%)")
 ax.set_xlim([x[0], x[-1]])
-#ax.set_ylim([0.03, 0.09])
+#ax.set_ylim([0.03, 0.12])
 #ax.set_xticklabels(xl)
 ax.legend(loc=2,ncol=2, prop={'size': 11})
 
 #plt.savefig('JOCNhetgpsig.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetgpsig20moredata.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('hetgpsigdvmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetgpsigdvmoredata.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetgpsigst.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetgpsigstmoredata.pdf', dpi=200,bbox_inches='tight')
 #plt.axis([x[0],x[-1],0.03,0.09])
 #plt.xticklabels()
 plt.show()
@@ -464,24 +599,25 @@ ln6 = ax1.fill(np.concatenate([x, x[::-1]]),
          np.concatenate([prmnn3[ind],
                         (prmnn5[ind])[::-1]]),
          alpha=0.3, fc='g', ec='None')
-ln7 = ax2.plot(x,sig[ind],color='m',LineStyle='-.',label='$R(time)$')
+ln7 = ax2.plot(x,sig[ind],color='r',LineStyle='-.',label='$R(time)$')
 
-ln8 = ax2.plot(x,sdhet1,color='k',label='Eq. (1) $\sigma(t)$')
+ln8 = ax2.plot(x,sdhet,'--',color='k',label='Eq. (1) $\sigma(t)$')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("SNR (dB)")
 ax2.set_ylabel("SNR $\sigma$ (dB)")
     
 ax1.set_xlim([x[0], x[-1]])
-#ax1.set_ylim([13,15.5])
-ax2.set_ylim([0.03,0.09])
+#ax1.set_ylim([13.2,14.5])
+#ax2.set_ylim([0.03,0.09])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
 lns = ln4+ln5+ln7+ln8
 labs = [l.get_label() for l in lns]
-ax1.legend(lns, labs,loc=1, ncol=2, prop={'size': 10})
+ax1.legend(lns, labs,loc=4, ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
-plt.savefig('hetGPexampledvmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPexampledvmoredata.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('hetGPexamplestmoredata.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetGPexamplest.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetGPexample20moredata.pdf', dpi=200,bbox_inches='tight')
 
