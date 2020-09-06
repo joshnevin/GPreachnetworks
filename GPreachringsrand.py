@@ -30,19 +30,19 @@ from sklearn.preprocessing import StandardScaler
 
 # section 1: define topologies 
 
-nodesT = ['1','2','3','4','5','6','7','8','9','10']
+nodesT = ['1','2','3','4','5','6','7','8','9','10','11']
 
-graphT = {'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
-         '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
-         '8':{'7':100,'9':100}, '9':{'8':200,'10':100}, '10':{'1':300,'9':100}
+graphT = {'1':{'2':240,'11':240},'2':{'1':240,'3':240},'3':{'2':240,'4':240},    
+         '4':{'3':240,'5':240},'5':{'4':240,'6':240},'6':{'5':240,'7':240}, '7':{'6':240,'8':240},
+         '8':{'7':240,'9':240}, '9':{'8':240,'10':240}, '10':{'9':240,'11':240}, '11':{'10':240,'1':240}
          }
-edgesT = {'1':{'2':0,'10':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
+edgesT = {'1':{'2':0,'11':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
          '4':{'3':6,'5':7},'5':{'4':8,'6':9},'6':{'5':10,'7':11}, '7':{'6':12,'8':13},
-         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'1':18,'9':19}
+         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'9':18,'11':19}, '11':{'10':20,'1':21}
          }
-numnodesT = 10
-numedgesT = 20
-LspansT = 100
+numnodesT = 11
+numedgesT = 22
+LspansT = 80
 
 nodesB = ['1','2','3','4','5','6','7','8','9','10','11','12','13']
 
@@ -74,7 +74,7 @@ numnodesD = 12
 numedgesD = 24
 LspansD = 80
 
-graphA = graphB # select the topology under test 
+graphA = graphD # select the topology under test 
 if graphA == graphT:
     numnodesA = numnodesT
     numedgesA = numedgesT
@@ -102,21 +102,22 @@ PchdBm = np.linspace(-6,6,500)  # 500 datapoints for higher resolution of Pch
 TRxb2b = 26 # fron UCL paper: On the limits of digital back-propagation in the presence of transceiver noise, Lidia Galdino et al.
 numpoints = 100
 
-alpha = 0.2
+
 NLco = 1.27
 Disp = 16.7
 
 OSNRmeasBW = 12.478 # OSNR measurement BW [GHz]
 Rs = 32 # Symbol rate [Gbd]
+Bchrs = 41.6
 testlen = 1000.0     # all ageing effects modelled using values in: Faster return of investment in WDM networks when elastic transponders dynamically fit ageing of link margins, Pesic et al.
 years = np.linspace(0,10,21) # define how many years are in the lifetime of the network and the resolution 
 numyears = np.size(years)
 sd = np.linspace(0.04, 0.08, np.size(years)) # added SNR uncertainty SD - assumed to double over lifetime
 
 NF = np.linspace(4.5,5.5,np.size(years)) # define the NF ageing of the amplifiers 
-alpha = 0.2 + 0.00163669*years # define the fibre ageing due to splice losses over time 
-trxaging = ((1 + 0.05*years)*2).reshape(np.size(years),1)*(OSNRmeasBW/Rs) # define TRx ageing 
-oxcaging = ((0.03 + 0.007*years)*2).reshape(np.size(years),1)*(OSNRmeasBW/Rs) # define filter ageing, assuming two filters per link, one at Tx and one at Rx
+alpha = 0.2 + 0.00164*years # define the fibre ageing due to splice losses over time 
+trxaging = (1 + 0.05*years).reshape(np.size(years),1)*(OSNRmeasBW/Bchrs) # define TRx ageing 
+oxcaging = (0.03 + 0.007*years).reshape(np.size(years),1)*(OSNRmeasBW/Bchrs) # define filter ageing, assuming two filters per link, one at Tx and one at Rx
 
 # find the worst-case margin required                         
 fmD = sd[-1]*5 # static D margin is defined as 5xEoL SNR uncertainty SD that is added
@@ -202,9 +203,9 @@ def SNRgen(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
         Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
     if nyqch:
-        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
     else:
-        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
     snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
     #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
     sdnorm = sd[yearind]
@@ -273,9 +274,9 @@ def fmsnr(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths)
         Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
     if nyqch:
-        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
     else:
-        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
     snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
     return lin2db(snr)  
 
@@ -342,9 +343,9 @@ def SNRnew(pathind, yearind, nyqch, edgeinds, edgelens, numlamlk, pthdists, pths
         Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
     Pch = 1e-3*10**(Popt/10) 
     if nyqch:
-        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
     else:
-        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+        snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
     snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
     #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
     sdnorm = sd[yearind]
@@ -510,17 +511,17 @@ def findroutesrand(nodes, secondpath, numreq):
     if graphA == graphT:
         for _ in range(numreq):           
             srcnd, desnd = requestgen(graphA)
-            d, p = dijkstra({'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
-                                 '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
-                                 '8':{'7':100,'9':100}, '9':{'8':200,'10':100}, '10':{'1':300,'9':100}
-                                 } , srcnd, desnd)
+            d, p = dijkstra({'1':{'2':240,'11':240},'2':{'1':240,'3':240},'3':{'2':240,'4':240},    
+                            '4':{'3':240,'5':240},'5':{'4':240,'6':240},'6':{'5':240,'7':240}, '7':{'6':240,'8':240},
+                            '8':{'7':240,'9':240}, '9':{'8':240,'10':240}, '10':{'9':240,'11':240}, '11':{'10':240,'1':240}
+                            } , srcnd, desnd)
             dis.append(d)
             path.append(p)
             if secondpath:
-                shgraph = removekey({'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
-                                         '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
-                                         '8':{'7':100,'9':100}, '9':{'8':200,'10':100}, '10':{'1':300,'9':100}
-                                         }, p[0],p[1])  # remove the first link of the shortest path, between the first two nodes traversed
+                shgraph = removekey({'1':{'2':240,'11':240},'2':{'1':240,'3':240},'3':{'2':240,'4':240},    
+                                     '4':{'3':240,'5':240},'5':{'4':240,'6':240},'6':{'5':240,'7':240}, '7':{'6':240,'8':240},
+                                     '8':{'7':240,'9':240}, '9':{'8':240,'10':240}, '10':{'9':240,'11':240}, '11':{'10':240,'1':240}
+                                     }, p[0],p[1])  # remove the first link of the shortest path, between the first two nodes traversed
                 d2, p2 = dijkstra(shgraph , srcnd, desnd)
                 dis.append(d2)
                 path.append(p2)
@@ -737,7 +738,7 @@ totthrptdiffrtm = ((totthrptrtm - totthrptfm)/totthrptfm)*100
 
 totthrptdiffsh = ((totgpshcp - totthrptfm)/totthrptfm)*100
 
-randiter = 4
+randiter = 5
 
 if graphA == graphT:
     np.savetxt('totthrptgpirdT' + str(randiter) + '.csv', totthrptgpi, delimiter=',') 
@@ -929,7 +930,7 @@ plt.show()
 
 
 # %% heteroscedastic data generation: normal increase in SNR st. dev. and ageing, linear loading 
-hetdatagen = False
+hetdatagen = True
 if hetdatagen:
     def datatshet(edgelen, Lspans, numlam, NF,sd, alpha, yearind, nyqch):
             Ls = Lspans
@@ -983,10 +984,10 @@ if hetdatagen:
                 Pase = NF*h*f*(db2lin(alpha*Lspans) - 1)*BchRS*1e9*numspans
             Pch = 1e-3*10**(Popt/10) 
             if nyqch:            
-                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + 2*oxcagingh[yearind]) # subtract static ageing effects
                 #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             else:            
-                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + 2*oxcagingh[yearind]) # subtract static ageing effects
                 #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
             snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
             #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
@@ -1009,13 +1010,13 @@ if hetdatagen:
     #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
     #sdh = 0.04 + (0.36/10**0.5)*yearsh**0.5
     #sdh = 0.04 + 8e-4*yearsh**2
-    alphah = 0.2 + 0.00163669*yearsh
+    alphah = 0.2 + 0.00164*yearsh
     hetdata = np.empty([numyrsh,numedgesA])
-    trxagingh = ((1 + 0.05*yearsh)*2).reshape(np.size(yearsh),1) 
+    trxagingh = (1 + 0.05*yearsh).reshape(np.size(yearsh),1) 
     #trxaginghextdeg1 = [((1 + 0.05*yearsh[i])*2) for i in range(int(numyrsh/2))] 
     #trxaginghextdeg2 = [((trxaginghextdeg1[-1]/2 + 0.1*yearsh[i])*2) for i in range(int(numyrsh/2))] 
     #trxaginghextdeg = np.append(trxaginghextdeg1, trxaginghextdeg2)
-    oxcagingh = ((0.03 + 0.007*yearsh)*2).reshape(np.size(yearsh),1)
+    oxcagingh = (0.03 + 0.007*yearsh).reshape(np.size(yearsh),1)
     #linkPopt = np.empty([numyears,1])
 
     plt.plot(yearsh, sdh, label = 'linear')
@@ -1034,7 +1035,7 @@ if hetdatagen:
     #plt.savefig('sigmavstime.pdf', dpi=200,bbox_inches='tight')
     plt.show()
  
-    testlens = [160,480,960,1200, 1600, 2400]
+    testlens = [400,800,1200,1600]
     hetdata = np.empty([len(testlens),numyrsh])
     for i in range(len(testlens)):
         for j in range(numyrsh):
@@ -1099,10 +1100,10 @@ if hetdatagen:
             Pch = 1e-3*10**(Popt/10) 
             if nyqch:            
                 #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
-                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaginghextdeg[yearind] + 2*oxcagingh[yearind]) # subtract static ageing effects
             else:            
                 #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
-                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaginghextdeg[yearind] + 2*oxcagingh[yearind]) # subtract static ageing effects
             snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
             #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
             sdnorm = sd # noise on each link is assumed to be proportional to the link length 
@@ -1124,11 +1125,11 @@ if hetdatagen:
     #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
     #sdh = 0.04 + (0.36/10**0.5)*yearsh**0.5
     #sdh = 0.04 + 8e-4*yearsh**2
-    alphahst = 0.2 + 0.00163669*yearshst
+    alphahst = 0.2 + 0.00164*yearshst
     hetdata = np.empty([numyrsh,numedgesA])
     #trxagingh = ((1 + 0.05*yearshst)*2).reshape(np.size(yearshst),1) 
-    trxaginghextdeg1 = [((1 + 0.05*yearshst[i])*2) for i in range(int(numyrsh/2))] 
-    trxaginghextdeg2 = [((trxaginghextdeg1[-1] + 0.1*yearshst[i])*2) for i in range(int(numyrsh/2))] 
+    trxaginghextdeg1 = [(1 + 0.05*yearshst[i]) for i in range(int(numyrsh/2))] 
+    trxaginghextdeg2 = [((trxaginghextdeg1[-1]*2 + 0.05*yearshst[i])) for i in range(int(numyrsh/2))] 
     trxaginghextdeg = np.append(trxaginghextdeg1, trxaginghextdeg2)
     oxcagingh = ((0.03 + 0.007*yearshst)*2).reshape(np.size(yearshst),1)
     #linkPopt = np.empty([numyears,1])
@@ -1149,7 +1150,7 @@ if hetdatagen:
     plt.savefig('TRxageing.pdf', dpi=200,bbox_inches='tight')
     plt.show()
  
-    testlens = [160,480,960,1200, 1600, 2400]
+    testlens = [400,800,1200,1600]
     hetdata = np.empty([len(testlens),numyrsh])
     for i in range(len(testlens)):
         for j in range(numyrsh):
@@ -1213,10 +1214,10 @@ if hetdatagen:
             Pch = 1e-3*10**(Popt/10) 
             if nyqch:            
                 #snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
-                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxagingh[yearind] + 2*oxcagingh[yearind]) # subtract static ageing effects
             else:            
                 #snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
-                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + oxcagingh[yearind]) # subtract static ageing effects
+                snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxagingh[yearind] + 2*oxcagingh[yearind]) # subtract static ageing effects
             snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1) # add TRx B2B noise 
             #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
             sdnorm = sd 
@@ -1244,11 +1245,11 @@ if hetdatagen:
     #sdh = 0.04 + (0.04/10**0.5)*yearsh**0.5
     #sdh = 0.04 + (0.36/10**0.5)*yearsh**0.5
     #sdh = 0.04 + 8e-4*yearsh**2
-    alphahst = 0.2 + 0.00163669*yearshst
+    alphahst = 0.2 + 0.00164*yearshst
     hetdata = np.empty([numyrsh,numedgesA])
-    trxagingh = ((1 + 0.05*yearshst)*2).reshape(np.size(yearshst),1) 
+    trxagingh = ((1 + 0.05*yearshst)).reshape(np.size(yearshst),1) 
     
-    oxcagingh = ((0.03 + 0.007*yearshst)*2).reshape(np.size(yearshst),1)
+    oxcagingh = ((0.03 + 0.007*yearshst)).reshape(np.size(yearshst),1)
     #linkPopt = np.empty([numyears,1])
 
     plt.plot(yearshst, sh[0], label = 'linear')
@@ -1271,7 +1272,7 @@ if hetdatagen:
     hetdata = np.empty([numlps,numyrsh])
     for i in range(numlps):
         for j in range(numyrsh):
-            hetdata[i][j] = datatshetdv(1600, 80, numlamhst[j], NFhst[j], sh[i][j], alphahst[j], j, False)
+            hetdata[i][j] = datatshetdv(800, 80, numlamhst[j], NFhst[j], sh[i][j], alphahst[j], j, False)
     #np.savetxt('hetdata.csv', hetdata, delimiter=',')
     np.savetxt('hetdataextdegdv.csv', hetdata, delimiter=',')
 

@@ -110,19 +110,19 @@ if MSdata:
 
 # %% section 1: find the shortest and second shortest paths for each node pair and start to fill network 
 
-nodesT = ['1','2','3','4','5','6','7','8','9','10']
+nodesT = ['1','2','3','4','5','6','7','8','9','10','11']
 
-graphT = {'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
-         '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
-         '8':{'7':100,'9':100}, '9':{'8':200,'10':100}, '10':{'1':300,'9':100}
+graphT = {'1':{'2':240,'11':240},'2':{'1':240,'3':240},'3':{'2':240,'4':240},    
+         '4':{'3':240,'5':240},'5':{'4':240,'6':240},'6':{'5':240,'7':240}, '7':{'6':240,'8':240},
+         '8':{'7':240,'9':240}, '9':{'8':240,'10':240}, '10':{'9':240,'11':240}, '11':{'10':240,'1':240}
          }
-edgesT = {'1':{'2':0,'10':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
+edgesT = {'1':{'2':0,'11':1},'2':{'1':2,'3':3},'3':{'2':4,'4':5},    
          '4':{'3':6,'5':7},'5':{'4':8,'6':9},'6':{'5':10,'7':11}, '7':{'6':12,'8':13},
-         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'1':18,'9':19}
+         '8':{'7':14,'9':15}, '9':{'8':16,'10':17}, '10':{'9':18,'11':19}, '11':{'10':20,'1':21}
          }
-numnodesT = 10
-numedgesT = 20
-LspansT = 100
+numnodesT = 11
+numedgesT = 22
+LspansT = 80
 
 nodesB = ['1','2','3','4','5','6','7','8','9','10','11','12','13']
 
@@ -154,7 +154,7 @@ numnodesD = 12
 numedgesD = 24
 LspansD = 80
 
-graphA = graphB
+graphA = graphD
 if graphA == graphT:
     numnodesA = numnodesT
     numedgesA = numedgesT
@@ -190,16 +190,16 @@ def findroutes(nodes, secondpath):
             for j in range(numnodes): 
                 if i == j:
                     continue
-                d, p = dijkstra({'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
-                                 '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
-                                 '8':{'7':100,'9':100}, '9':{'8':200,'10':100}, '10':{'1':300,'9':100}
+                d, p = dijkstra({'1':{'2':240,'11':240},'2':{'1':240,'3':240},'3':{'2':240,'4':240},    
+                                '4':{'3':240,'5':240},'5':{'4':240,'6':240},'6':{'5':240,'7':240}, '7':{'6':240,'8':240},
+                                 '8':{'7':240,'9':240}, '9':{'8':240,'10':240}, '10':{'9':240,'11':240}, '11':{'10':240,'1':240}
                                  } , nodes[i], nodes[j])
                 dis.append(d)
                 path.append(p)
                 if secondpath:
-                    shgraph = removekey({'1':{'2':100,'10':200},'2':{'1':100,'3':400},'3':{'2':100,'4':200},    
-                                         '4':{'3':100,'5':300},'5':{'4':100,'6':100},'6':{'5':100,'7':200}, '7':{'6':100,'8':200},
-                                         '8':{'7':100,'9':100}, '9':{'8':200,'10':100}, '10':{'1':300,'9':100}
+                    shgraph = removekey({'1':{'2':240,'11':240},'2':{'1':240,'3':240},'3':{'2':240,'4':240},    
+                                         '4':{'3':240,'5':240},'5':{'4':240,'6':240},'6':{'5':240,'7':240}, '7':{'6':240,'8':240},
+                                         '8':{'7':240,'9':240}, '9':{'8':240,'10':240}, '10':{'9':240,'11':240}, '11':{'10':240,'1':240}
                                          }, p[0],p[1])
                     d2, p2 = dijkstra(shgraph , nodes[i], nodes[j])
                     dis.append(d2)
@@ -282,15 +282,16 @@ Disp = 16.7
 
 OSNRmeasBW = 12.478 # OSNR measurement BW [GHz]
 Rs = 32 # Symbol rate [Gbd]
+Bchrs = 41.6 # RS from GN model paper - raised cosine + roll-off of 0.3 
 testlen = 1000.0     # all ageing effects modelled using values in: Faster return of investment in WDM networks when elastic transponders dynamically fit ageing of link margins, Pesic et al.
 years = np.linspace(0,10,21) # define how many years are in the lifetime of the network and the resolution 
 numyears = np.size(years)
 sd = np.linspace(0.04, 0.08, np.size(years)) # added SNR uncertainty SD - assumed to double over lifetime
 
 NF = np.linspace(4.5,5.5,np.size(years)) # define the NF ageing of the amplifiers 
-alpha = 0.2 + 0.00163669*years # define the fibre ageing due to splice losses over time 
-trxaging = ((1 + 0.05*years)*2).reshape(np.size(years),1)*(OSNRmeasBW/Rs) # define TRx ageing 
-oxcaging = ((0.03 + 0.007*years)*2).reshape(np.size(years),1)*(OSNRmeasBW/Rs) # define filter ageing, assuming two filters per link, one at Tx and one at Rx
+alpha = 0.2 + 0.00164*years # define the fibre ageing due to splice losses over time 
+trxaging = (1 + 0.05*years).reshape(np.size(years),1)*(OSNRmeasBW/Bchrs) # define TRx ageing 
+oxcaging = (0.03 + 0.007*years).reshape(np.size(years),1)*(OSNRmeasBW/Bchrs) # define filter ageing for one filter
 
 # find the worst-case margin required                         
 fmD = sd[-1]*5 # static D margin is defined as 5xEoL SNR uncertainty SD that is added
@@ -360,14 +361,15 @@ def SNRgen(pathind, yearind, nyqch):  # function for generating a new SNR value 
             Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
         Pch = 1e-3*10**(Popt/10) 
         if nyqch:
-            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
         else:
-            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
         snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
         #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
         sdnorm = sd[yearind]
         return lin2db(snr) + np.random.normal(0,sdnorm,numpoints) 
-    
+
+
 def fmsnr(pathind, yearind, nyqch):  # function for generating a new SNR value to test if uncertainty is dealt with
         Ls = LspansA
         D = Disp          # rather than the worst-case number 
@@ -430,9 +432,9 @@ def fmsnr(pathind, yearind, nyqch):  # function for generating a new SNR value t
             Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
         Pch = 1e-3*10**(Popt/10) 
         if nyqch:
-            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
         else:
-            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
         snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
         return lin2db(snr)  
 
@@ -498,9 +500,9 @@ def SNRnew(pathind, yearind, nyqch):  # function for generating a new SNR value 
             Pase = NF[yearind]*h*f*(db2lin(alpha[yearind]*Ls) - 1)*BchRS*1e9*totnumspans
         Pch = 1e-3*10**(Popt/10) 
         if nyqch:
-            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+            snr = (Pch/(Pase + Gnli*Rs*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
         else:
-            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + oxcaging[yearind])
+            snr = (Pch/(Pase + Gnli*BchRS*1e9)) - db2lin(trxaging[yearind] + ((numlinks - 1)*2 + 2)*oxcaging[yearind])
         snr = ( snr**(-1) + (db2lin(TRxb2b))**(-1) )**(-1)
         #snr = snr + np.random.normal(0,db2lin(sd),numpoints)
         sdnorm = sd[yearind]
@@ -706,7 +708,6 @@ end = time.time()
 
 print("GP algorithm took " + str((end-start)/60) + " minutes")
 
-
 # %% section 7: determine throughput for the ring network 
 
 if graphA == graphT:
@@ -814,11 +815,6 @@ def thrptcalc(gpmf, gpUm, gpshcp, rtmmf, rtmUm, rtmshcp):
 
 totthrptgp, totUmgp, totthrptdiffgp,totgpshcp, totthrptrtm, totUmrtm, totthrptdiffrtm, totrtmshcp, totthrptdiffsh = thrptcalc(gpmf, gpUm, gpshcp, rtmmf, rtmUm, rtmshcp)
 
-# %%
-
-thrptareagp = sum([ (1.5*totthrptgp[i] - 0.5*totthrptgp[i+1])*15778800 for i in range(numyears-1)  ])/1e9
-thrptareartm = sum([ (1.5*totthrptrtm[i] - 0.5*totthrptrtm[i+1])*15778800 for i in range(numyears-1)  ])/1e9
-thrptareafm = totthrptfm[0]*315576000/1e9
 
 # %%
 
@@ -838,6 +834,14 @@ if graphA == graphB:
     np.savetxt('totthrptdiffrtmB.csv', totthrptdiffrtm, delimiter=',') 
     np.savetxt('totrtmshcpB.csv', totrtmshcp, delimiter=',') 
     np.savetxt('totrtmshcpdiffB.csv', totthrptdiffsh, delimiter=',') 
+if graphA == graphT:
+    np.savetxt('totthrptgpT.csv', totthrptgp, delimiter=',') 
+    np.savetxt('totthrptfmT.csv', totthrptfm, delimiter=',') 
+    np.savetxt('totthrptrtmT.csv', totthrptrtm, delimiter=',') 
+    np.savetxt('totthrptdiffgpT.csv', totthrptdiffgp, delimiter=',') 
+    np.savetxt('totthrptdiffrtmT.csv', totthrptdiffrtm, delimiter=',') 
+    np.savetxt('totrtmshcpT.csv', totrtmshcp, delimiter=',') 
+    np.savetxt('totrtmshcpdiffT.csv', totthrptdiffsh, delimiter=',') 
 
 # %% plotting 
 
@@ -874,7 +878,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('totalthrptnoloadingB.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptnoloadingT.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 
@@ -905,7 +909,7 @@ ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('JOCNtotalthrpt.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('totalthrptdiffnoloadingB.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('totalthrptdiffnoloadingT.pdf', dpi=200,bbox_inches='tight')
 plt.show()
     
 # %%
@@ -944,7 +948,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('UmarginGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
+##plt.savefig('UmarginGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 # %%
@@ -967,7 +971,7 @@ labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0,ncol=2, prop={'size': 10})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('Ytotalthrptdiff' + str(suffix) + '.pdf', dpi=200,bbox_inches='tight')
-plt.savefig('speceffGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
+#plt.savefig('speceffGPbenefitnoloadingB.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
 

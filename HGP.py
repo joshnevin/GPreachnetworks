@@ -25,13 +25,13 @@ from scipy.stats import norm
 import math
 #matplotlib.rc_file_defaults()   # use to return to Matplotlib defaults 
 
-snr = np.genfromtxt(open("hetdata20.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
+#snr = np.genfromtxt(open("hetdata20.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
 #snr = np.genfromtxt(open("hetdataextdegdv.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
-#snr = np.genfromtxt(open("hetdataextdegst.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
+snr = np.genfromtxt(open("hetdataextdegst.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
 numpoints = np.size(snr,1)
 numedges = np.size(snr,0)
 #x = np.linspace(0,numpoints-1,numpoints)
-x = np.linspace(0,10,numpoints)
+x = np.linspace(0,1,numpoints)
 # 
 #SNR = SNR[0]
 #snr = snr[0:1]
@@ -143,11 +143,15 @@ def HGPfunc(x,y,plot):
             k1is4 = np.random.uniform(1e-2,1e3)
             k2is4 = np.random.uniform(1e-2,1e3)
             kis4 = np.ndarray((numh,), buffer=np.array([k1is4,k2is4]), dtype = float)
-            s4res = minimize(lmlh,kis4,args=(y,R),method = 'L-BFGS-B',jac=lmlgh,bounds = ((1e-2,1e3),(1e-2,1e3)),options={'maxiter':1e3})
+            s4res = minimize(lmlh,kis4,args=(y,R),method = 'L-BFGS-B',jac=lmlgh,bounds = ((1e-2,1e3),(1e-2,1e3)),options={'maxiter':1e2})
             step4res = []
             if s4res.success:
                 step4res.append(s4res.x)
+                print("success " + str(k1is4))
+                print("success " + str(k2is4))
             else:
+                print("error " + str(k1is4))
+                print("error " + str(k2is4))
                 #raise ValueError(s4res.message)
                 #k1is4 = np.random.uniform(1e-2,1e3)
                 #k2is4 = np.random.uniform(2e-1,1e3)
@@ -178,8 +182,8 @@ def HGPfunc(x,y,plot):
             #k1is4,k2is4  = np.random.uniform(1e-2,1e2,2)
             #k1is3, k1is4  =  np.random.uniform(1e-2,1e2,2)
             #k2is3, k2is4  =  np.random.uniform(1e-1,1e2,2)
-            k1is3  =  np.random.uniform(1e-3,1e3,1)
-            k2is3  =  np.random.uniform(1e-3,1e3,1)
+            k1is3  =  np.random.uniform(1e-2,1e3,1)
+            k2is3  =  np.random.uniform(1e-2,1e3,1)
             z = np.empty([n,1])
             for j in range(n):
                 #np.random.seed()
@@ -193,7 +197,7 @@ def HGPfunc(x,y,plot):
                 
                 continue
             #  Step 3: estimate GP2 on D' - (x,z)
-            kernel2 = C(k1is3, (1e-3, 1e3)) * RBF(k2is3, (1e-3, 1e3)) 
+            kernel2 = C(k1is3, (1e-2, 1e3)) * RBF(k2is3, (1e-2, 1e3)) 
             gpr2 = GaussianProcessRegressor(kernel=kernel2, n_restarts_optimizer = numrestarts, normalize_y=False, alpha=np.var(z))
             
             gpr2.fit(x, z)
@@ -520,12 +524,10 @@ plt.show()
 
 f, ax = plt.subplots()
 #xl = ['0','2','4', '6', '8', '10']
-#ax.plot(x,sig[0],color='r',LineStyle=':',label='160 km')
-ax.plot(x,sig[1],color='m',LineStyle='-.',label='480 km')
-ax.plot(x,sig[2],color='g',LineStyle='-.',label= '960 km')
-ax.plot(x,sig[3],color='b',LineStyle='-.',label= '1200 km')
-ax.plot(x,sig[4],color='r',LineStyle='-.',label= '1600 km')
-#ax.plot(x,sig[5],color='c',LineStyle='-.',label= '2400 km')
+ax.plot(x,sig[0],color='m',LineStyle='-.',label='400 km')
+ax.plot(x,sig[1],color='g',LineStyle='-.',label= '800 km')
+ax.plot(x,sig[2],color='b',LineStyle='-.',label= '1200 km')
+ax.plot(x,sig[3],color='r',LineStyle='-.',label= '1600 km')
 
 """ ax.plot(x,sig[0],color='r',LineStyle='-.',label='A')
 ax.plot(x,sig[1],color='b',LineStyle='-.',label='B')
@@ -533,7 +535,7 @@ ax.plot(x,sig[2],color='g',LineStyle='-.',label= 'C') """
 
 
 # for standard heteroscedastic experiment 
-#sdhet = np.linspace(0.04,0.06,numpoints)
+#sdhet = np.linspace(0.04,0.08,numpoints)
 numyrsh = 200
 # for simulation of TRx fault 
 sdh1 = np.linspace(0.04,0.042,int(numyrsh/2)+1)
@@ -543,13 +545,13 @@ sdhet = np.append(sdh1,sdh2)
 # for comparison of different variances 
 """ sdhet1 = np.linspace(0.04,0.06,numpoints)
 sdhet2 = np.linspace(0.04,0.08,numpoints)
-sdhet3 = np.linspace(0.04,0.16,numpoints) """
+sdhet3 = np.linspace(0.04,0.16,numpoints)  """
 
 ax.plot(x,sdhet,color='k',label='Eq. (1) $\sigma(t)$')
 """ ax.plot(x,sdhet1,color='r',label='Eq. (1) $\sigma(t)$ A')
 ax.plot(x,sdhet2,color='b',label='Eq. (1) $\sigma(t)$ B')
 ax.plot(x,sdhet3,color='g',label='Eq. (1) $\sigma(t)$ C') """
-
+ 
 #plt.plot(x,sigrf[ind],color='k',LineStyle='-',label='$\sqrt{r(x)}$ 1')
 
 ax.set_xlabel("time (years)")
@@ -564,7 +566,7 @@ ax.legend(loc=2,ncol=2, prop={'size': 11})
 #plt.savefig('hetgpsig20moredata.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetgpsigdvmoredata.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetgpsigst.pdf', dpi=200,bbox_inches='tight')
-#plt.savefig('hetgpsigstmoredata.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('hetgpsigstmoredata.pdf', dpi=200,bbox_inches='tight')
 #plt.axis([x[0],x[-1],0.03,0.09])
 #plt.xticklabels()
 plt.show()
@@ -572,7 +574,7 @@ plt.show()
 # %%
 
 fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
+#ax2 = ax1.twinx()
 
 ln2 = ax1.plot(x,snr[ind],'+')
 ln3 = ax1.plot(x,prmn[ind],color='k')
@@ -599,35 +601,28 @@ ln6 = ax1.fill(np.concatenate([x, x[::-1]]),
          np.concatenate([prmnn3[ind],
                         (prmnn5[ind])[::-1]]),
          alpha=0.3, fc='g', ec='None')
-ln7 = ax2.plot(x,sig[ind],color='r',LineStyle='-.',label='$R(time)$')
-
-ln8 = ax2.plot(x,sdhet,'--',color='k',label='Eq. (1) $\sigma(t)$')
+#ln7 = ax2.plot(x,sig[ind],color='r',LineStyle='-.',label='$R(time)$')
+#ln8 = ax2.plot(x,sdhet,'--',color='k',label='Eq. (1) $\sigma(t)$')
     
 ax1.set_xlabel("time (years)")
 ax1.set_ylabel("SNR (dB)")
-ax2.set_ylabel("SNR $\sigma$ (dB)")
+#ax2.set_ylabel("SNR $\sigma$ (dB)")
     
 ax1.set_xlim([x[0], x[-1]])
 #ax1.set_ylim([13.2,14.5])
 #ax2.set_ylim([0.03,0.09])
 #ax2.set_ylim([totthrptfmAL[0] - 10, totshcpD[-1] + 10])
     
-lns = ln4+ln5+ln7+ln8
+lns = ln4+ln5
 labs = [l.get_label() for l in lns]
-ax1.legend(lns, labs,loc=4, ncol=2, prop={'size': 10})
+ax1.legend(lns, labs,loc=1, ncol=2, prop={'size': 13})
 #plt.axis([years[0],years[-1],1.0,8.0])
 #plt.savefig('hetGPexampledvmoredata.pdf', dpi=200,bbox_inches='tight')
-#plt.savefig('hetGPexamplestmoredata.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('hetGPexamplestmoredata.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetGPexamplest.pdf', dpi=200,bbox_inches='tight')
 #plt.savefig('hetGPexample20moredata.pdf', dpi=200,bbox_inches='tight')
-
 plt.show()
 
-# %%
-
-plt.plot(x,snr[1],'+')
-
-plt.show()
 
 
 # %%
