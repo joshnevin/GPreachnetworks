@@ -55,7 +55,8 @@ if MSdata:
                 del sd[k]
                 k = k - 1
             k = k + 1
-        return badind, qfac, max(sd), min(sd)
+        fq, tq = np.percentile(sd, [5, 95])
+        return badind, qfac, fq, tq
     
     numchannels = 150
     numchannels2 = 190
@@ -133,15 +134,15 @@ if MSdata:
     meansg95100sds = np.mean(sg95100sds)
     meansg95100sde = np.mean(sg95100sde)
     # avergae the high and low values across all the segments 
-    meanhighsd = (meansg15sds + meansg711sds + meansg5055sds + meansg95100sds)/4
-    meanlowsd = (meansg15sde + meansg711sde + meansg5055sde + meansg95100sde)/4
+    meanlowsd = (meansg15sds + meansg711sds + meansg5055sds + meansg95100sds)/4
+    meanhighsd = (meansg15sde + meansg711sde + meansg5055sde + meansg95100sde)/4
 
     # find the variance of individual channels for plots 
-    _, qfsg1, _, _, _ = simpleread("channel_" + str(5) + "_segment_1.txt")
-    _, qfsg2, _, _, _ = simpleread("channel_" + str(50) + "_segment_2.txt")
-    _, qfsg3, _, _, _ = simpleread("channel_" + str(80) + "_segment_3.txt")
-    _, qfsg4, _, _, _ = simpleread("channel_" + str(110) + "_segment_4.txt")
-    _, qfsg5, _, _, _ = simpleread("channel_" + str(140) + "_segment_5.txt")
+    _, qfsg1, _, _ = simpleread("channel_" + str(5) + "_segment_1.txt")
+    _, qfsg2, _, _ = simpleread("channel_" + str(50) + "_segment_2.txt")
+    _, qfsg3, _, _ = simpleread("channel_" + str(80) + "_segment_3.txt")
+    _, qfsg4, _, _ = simpleread("channel_" + str(110) + "_segment_4.txt")
+    _, qfsg5, _, _ = simpleread("channel_" + str(140) + "_segment_5.txt")
     
     varsg1 = varsample(qfsg1, 96)
     varsg2 = varsample(qfsg2, 96)
@@ -158,8 +159,6 @@ if MSdata:
     plt.savefig('qfactorvstime.pdf', dpi=200,bbox_inches='tight')
     plt.show() """
     
-    testvar = varsample(testq, 96) # 96 samples = 24hours
-    del testvar[225]
     del varsg1[0]
     del varsg3[0]
     del varsg3[0]
@@ -186,8 +185,9 @@ font = { 'family' : 'sans-serif',
                 'weight' : 'normal',
                 'size'   : 15}
 matplotlib.rc('font', **font)
+matplotlib.rcParams['axes.formatter.useoffset'] = False
 
-sigplot = np.linspace(0,5,100)
+sigplot = np.linspace(4,5,100)
 errprob = erf(sigplot/(2**0.5))*100
 
 fig, ax1 = plt.subplots()
@@ -195,8 +195,8 @@ ln1 = ax1.plot(sigplot, errprob)
 ax1.set_ylabel("Availability (%)")
 ax1.set_xlabel("GP confidence (number of $\sigma$)")
         
-        #ax1.set_xlim([years[0], years[-1]])
-        #ax1.set_ylim([48,56.5])
+ax1.set_xlim([4,5])
+ax1.set_ylim([errprob[0],100])
         
 lns = ln1
 labs = [l.get_label() for l in lns]
@@ -394,10 +394,20 @@ oxcaging = (0.03 + 0.007*years).reshape(np.size(years),1)*(OSNRmeasBW/Bchrs) # d
 # find the worst-case margin required                         
 randvarseed = False  # if True, re-seed the random variances 
 if randvarseed:  
-    lpsd = np.random.uniform(0.01,0.1,size = [numpths,numyears])
-    np.savetxt('lpsdB.csv', lpsd, delimiter=',') 
+    lpsd = np.random.uniform(0.02,0.05,size = [numpths,numyears])  # 10th and 90th percentile values 
+    if graphA == graphD:
+        np.savetxt('lpsdD.csv', lpsd, delimiter=',') 
+    if graphA == graphB:
+        np.savetxt('lpsdB.csv', lpsd, delimiter=',') 
+    if graphA == graphT:
+        np.savetxt('lpsdT.csv', lpsd, delimiter=',') 
 else:
-    lpsd = np.genfromtxt(open("lpsd.csv", "r"), delimiter=",", dtype =float)
+    if graphA == graphD:
+        lpsd = np.genfromtxt(open("lpsdD.csv", "r"), delimiter=",", dtype =float)
+    if graphA == graphB:
+        lpsd = np.genfromtxt(open("lpsdB.csv", "r"), delimiter=",", dtype =float)
+    if graphA == graphT:
+        lpsd = np.genfromtxt(open("lpsdT.csv", "r"), delimiter=",", dtype =float)
 
 #  section 4: find the SNR over each path, accounting for the varying number of wavelengths on each link 
 
@@ -636,7 +646,7 @@ gpUm = np.empty([numpths,numyears])
 gpshcp = np.empty([numpths,numyears])
 gpmar = np.empty([numpths,numyears])
 
-numsig = 4.5
+numsig = 5
 start = time.time()
 for i in range(numpths):
     for j in range(numyears):  # change this later - will need to implement a time loop for the whole script, put it all in a big function
@@ -647,7 +657,7 @@ end = time.time()
 print("GP algorithm took " + str((end-start)/60) + " minutes")
 
 # %% section 7: determine throughput for the ring network 
-numsiglab = 45
+numsiglab = 5
 if graphA == graphT:
     np.savetxt('gpmfT_' + str(numsiglab) + '.csv', gpmf, delimiter=',') 
     np.savetxt('gpUmT_' + str(numsiglab) + '.csv', gpUm, delimiter=',') 
