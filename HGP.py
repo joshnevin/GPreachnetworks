@@ -56,9 +56,9 @@ def down_sample(df, sam):
     Qarr = df["Q-factor"].to_numpy()
     CDarr = df["CD"].to_numpy()
     PMDarr = df["PMD"].to_numpy()
-    Qarr = [Qarr[i] for i in range(0, round(len(Qarr)), sam)] 
-    CDarr = [CDarr[i] for i in range(0, round(len(CDarr)), sam)]  
-    PMDarr = [PMDarr[i] for i in range(0, round(len(PMDarr)), sam)] 
+    Qarr = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), sam)])
+    CDarr = np.asarray([CDarr[i] for i in range(0, round(len(CDarr)), sam)])
+    PMDarr = np.asarray([PMDarr[i] for i in range(0, round(len(PMDarr)), sam)])
     return Qarr, CDarr, PMDarr
 
 
@@ -99,6 +99,44 @@ def convert_objects_to_float(df: pd.DataFrame) -> pd.DataFrame:
             continue
     return df
 
+def convert_to_lin_Q(Q):
+    """
+    convert from Q(dB) to Q
+    """
+    return 10**(Qarr/20)
+
+def get_times_from_dates(df):
+    """
+    convert the dates column to time elapsed since the first measurement in minutes
+                        """
+    dates = df['date'].astype('str')
+    numtime = len(dates[0].split('.'))
+    timeelapsed = np.empty([len(dates),5])
+    totaltime = []
+    timeelapsed[0] = 0.0
+    for i in range(len(dates) - 1):
+        timeelapsed[i+1] = [float(dates[i+1].split('.')[j]) - float(dates[0].split('.')[j]) for j in range(numtime-1)  ]
+        totaltime.append(sum([timeelapsed[i+1][0]*365.2425*24*60, timeelapsed[i+1][1]*30.44*24*60,
+        timeelapsed[i+1][2]*24*60, timeelapsed[i+1][3]*60, timeelapsed[i+1][4]]))
+    totaltime.insert(0, 0.0)
+    return totaltime
+
+def get_discontinuities_in_time(time_column):
+    """
+    get the indices for which the next 
+                        """
+    discons = []
+    for i in range(len(timecol) - 1):
+        if timecol[i+1] - timecol[i] > 15.0:
+            discons.append(i+1)
+    return discons
+
+def convert_to_lin_Q(Q):
+    """
+    convert from Q(dB) to Q
+    """
+    return 10**(Qarr/20)
+
 # %%
 channel = '20'
 root_dir = '/Users/joshnevin/Desktop/MicrosoftDataset'
@@ -106,14 +144,16 @@ file_list_simulations= get_list_simulations(root_dir)
 simulation_files_dict = get_dict_scenario_txt(file_list_simulations)
 
 df = read_txt_to_df(simulation_files_dict[channel], root_dir)
-Qarr, CDarr, PMDarr = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
+timecol = get_times_from_dates(df)
+Qarr, CDarr, _ = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
 Qarr = drop_bad_values(CDarr, Qarr)
+Qarr = convert_to_lin_Q(Qarr)
 
 downsampleval = 150
 snr = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
 snr = snr.reshape(len(snr),1)
-x = np.linspace(0, len(snr), len(snr))
-
+x = np.asarray([timecol[i]/(24*60) for i in range(0, round(len(timecol)), downsampleval)])
+x = x.reshape(len(x), 1)
 numpoints = len(snr)
 numedges = 1
 # %%
@@ -494,7 +534,7 @@ if algtest:
     #ax2.plot(x, sig, '--', label="learned $\sigma$")
     #ax2.plot(x, sd, '-', label="true $\sigma$")
     #ax2.set_ylabel("$\sigma$")
-    ax.set_xlabel("Time (AU)")
+    ax.set_xlabel("Time (days)")
     ax.set_ylabel("Q-factor (dB)")
     ax.set_xlim([x[0], x[-1]])
     #ax.set_ylim([6.4, 9.5])
@@ -504,16 +544,16 @@ if algtest:
     #plt.savefig('HGPtestgoldberg.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestwilliams.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestyuanwhaba.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQ.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQ'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     f, ax = plt.subplots()
     ax.plot(x, sig, '--', label="learned $\sigma$")
     #ax.plot(x, sd, '-', label="true $\sigma$")
-    ax.set_xlabel("Time (AU)")
+    ax.set_xlabel("Time (days)")
     ax.set_ylabel("Q-factor $\sigma$ (dB)")
     #plt.savefig('HGPtestgoldbergsig.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQsig.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQsig'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     plt.plot(lml)
