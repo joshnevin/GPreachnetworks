@@ -9,10 +9,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel as W, ExpSineSquared, RationalQuadratic 
 from sklearn.preprocessing import StandardScaler
 from scipy.stats import norm, skew, skewnorm
-font = { 'family' : 'sans-serif',
-                'weight' : 'normal',
-                'size'   : 16}
-matplotlib.rc('font', **font)
+
 
 # functions
 
@@ -100,15 +97,15 @@ def read_txt_to_df(file, root_dir):
 
 def down_sample(df, sam):
     """
-    downsample to every hour and return Q and CD arrays 
+    downsample by a factor 'sam' and return Q and CD arrays 
     """
     sam = int(sam)
     Qarr = df["Q-factor"].to_numpy()
     CDarr = df["CD"].to_numpy()
     PMDarr = df["PMD"].to_numpy()
-    Qarr = [Qarr[i] for i in range(0, round(len(Qarr)), sam)]  # select every hour 
-    CDarr = [CDarr[i] for i in range(0, round(len(CDarr)), sam)]  # select every hour 
-    PMDarr = [PMDarr[i] for i in range(0, round(len(PMDarr)), sam)]  # select every hour 
+    Qarr = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), sam)])
+    CDarr = np.asarray([CDarr[i] for i in range(0, round(len(CDarr)), sam)])
+    PMDarr = np.asarray([PMDarr[i] for i in range(0, round(len(PMDarr)), sam)])
     return Qarr, CDarr, PMDarr
 
 
@@ -134,7 +131,7 @@ def get_segment(channel):
 
 def find_bad_segments(simulation_files_dict, root_dir):
     """
-    find good segments based on PMD SD > 10% of mean 
+    find bad segments based on PMD SD > 2% of mean 
     """
     badinds = []
     for i in range(len(simulation_files_dict) - 1):
@@ -188,11 +185,47 @@ def GP_train_kernel(x,y,kernel):
     sigmai = (ystarpi - ystari)
     return ystari, sigmai, gpr, theta, lml
 
-def varsample(qfac,n): # find the variance for samples of size n
-        varsams = []
-        for i in range(0,len(qfac),n):
-            varsams.append(np.var(qfac[i:i+n])**0.5)
-        return varsams
+def sample_std(qfac,n): # find the variance for samples of size n
+    """
+    sample std of Q in batches of size n
+    """
+    varsams = []
+    for i in range(0,len(qfac),n):
+        varsams.append(np.var(qfac[i:i+n])**0.5)
+    return varsams
+
+def convert_to_lin_Q(Q):
+    """
+    convert from Q(dB) to Q
+    """
+    return 10**(Qarr/20)
+
+def get_times_from_dates(df):
+    """
+    convert the dates column to time elapsed since the first measurement in minutes
+                        """
+    dates = df['date'].astype('str')
+    numtime = len(dates[0].split('.'))
+    timeelapsed = np.empty([len(dates),5])
+    totaltime = []
+    timeelapsed[0] = 0.0
+    for i in range(len(dates) - 1):
+        timeelapsed[i+1] = [float(dates[i+1].split('.')[j]) - float(dates[0].split('.')[j]) for j in range(numtime-1)  ]
+        totaltime.append(sum([timeelapsed[i+1][0]*365.2425*24*60, timeelapsed[i+1][1]*30.44*24*60,
+        timeelapsed[i+1][2]*24*60, timeelapsed[i+1][3]*60, timeelapsed[i+1][4]]))
+    totaltime.insert(0, 0.0)
+    return totaltime
+
+def get_discontinuities_in_time(time_column):
+    """
+    get the indices for which the next 
+                        """
+    discons = []
+    for i in range(len(timecol) - 1):
+        if timecol[i+1] - timecol[i] > 15.0:
+            discons.append(i+1)
+    return discons
+    
 
 # %% get files and make a dictionary 
 root_dir = '/Users/joshnevin/Desktop/MicrosoftDataset'
@@ -205,14 +238,32 @@ badsegs = find_bad_segments(simulation_files_dict, root_dir)
 channel = '20'
 print("segment = " + str(get_segment(channel)))
 df = read_txt_to_df(simulation_files_dict[channel], root_dir)
+timecol = get_times_from_dates(df)
+discons = get_discontinuities_in_time(timecol)
 Qarr, CDarr, PMDarr = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
 Qarr = drop_bad_values(CDarr, Qarr)
+Qarr = convert_to_lin_Q(Qarr)
+
 Qmean = np.nanmean(Qarr) # ignore Nans
 Qsd = np.nanstd(Qarr) # ignore Nans
 Qskew = skew(Qarr, nan_policy='omit') # ignore Nans
-# fit Gaussian to histogram 
+# fit Gaussian to histogram
 
-Qvar = np.asarray(varsample(Qarr, 100))
+font = { 'family' : 'sans-serif',
+                'weight' : 'normal',
+                'size'   : 14}
+matplotlib.rc('font', **font)
+
+fig, ax = plt.subplots()
+ax.plot(timecol)
+ax.set_ylabel("Time (mins)")
+ax.set_xlabel("Samples")
+plt.title("Channel " + str(channel))
+plt.savefig('timediscons' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+
+Qvar = sample_std(Qarr, 100)
 fig, ax = plt.subplots()
 ax.plot(Qvar, '+')
 ax.set_ylabel("Q-factor $\sigma$ (dB)")
@@ -220,14 +271,6 @@ ax.set_xlabel("Time (AU)")
 #plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
-plt.hist(Qvar, normed=True, color='c')
-plt.xlabel("Q-factor $\sigma$ (dB)")
-plt.ylabel("Frequency")
-plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
-x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
-plt.plot(x, norm.pdf(x, np.mean(Qvar), np.std(Qvar)), label = 'Normal', color='r')
-plt.plot(x, skewnorm.pdf(x, -skew(Qvar, nan_policy='omit'), np.mean(Qvar), np.std(Qvar)), label = 'Skewed', color='b')
-plt.show()
 
 plt.hist(Qarr, normed=True, color='c')
 plt.xlim((np.nanmin(Qarr), np.nanmax(Qarr)))
@@ -238,14 +281,31 @@ plt.xlabel("Q-factor (dB)")
 plt.ylabel("Frequency")
 plt.legend()
 plt.title("channel " + str(channel))
-plt.savefig('Qvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+plt.savefig('Qlinvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
+plt.hist(Qvar, normed=True, color='c')
+plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
+x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
+Qvarmean = np.nanmean(Qvar)
+Qvarsd = np.nanstd(Qvar)
+Qvarskew = skew(Qvar, nan_policy='omit')
+plt.plot(x, norm.pdf(x, Qvarmean, Qvarsd), label = 'Normal', color='r')
+plt.plot(x, skewnorm.pdf(x, -Qskew, Qvarmean, Qvarsd), label = 'Skewed', color='b')
+plt.xlabel("Q-factor $\sigma$ (dB)")
+plt.ylabel("Frequency")
+plt.legend()
+plt.title("channel " + str(channel))
+plt.savefig('Qlinvarvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+
 # %% perform downsampling
-downsampleval = 40
-#Qarrtrain = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
-Qarrtrain = np.asarray(varsample(Qarr, 100))
-xgp = np.linspace(0, len(Qarrtrain), len(Qarrtrain))
+downsampleval = 150
+Qarrtrain = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
+#Qarrtrain = np.asarray(varsample(Qarr, 100))
+#xgp = np.linspace(0, len(Qarrtrain), len(Qarrtrain))
+xgp = np.asarray([timecol[i] for i in range(0, round(len(timecol)), downsampleval)])
 
 # %% try different kernels and record LML
 
@@ -265,13 +325,50 @@ kernel6 = C(1, (1e-4, 1e4)) * RBF(1, (1e-4, 1e4)) + \
     C(1, (1e-4, 1e4)) * RationalQuadratic(1, 1, (1e-4, 1e4), (1e-4, 1e4))
 
 start = time.time()
-prmn, sdgp, GPmodel, theta, lml = GP_train_kernel(xgp, Qarrtrain, kernel6)
+prmn, sdgp, GPmodel, theta, lml = GP_train_kernel(xgp, Qarrtrain, kernel1)
 end = time.time()
 print("GP fitting took " + str((end-start)/60) + " minutes")
 print("LML = " + str(lml))
 thetatrans = np.exp(theta)
 print("theta (linear) = " + str(thetatrans))
 print("theta (log) = " + str(theta))
+
+# %% plot fitted GP model 
+sdgp = np.mean(sdgp)
+prmnp2 = prmn + 2*sdgp
+prmnm2 = prmn - 2*sdgp
+xgpplt = xgp/60  # put x axis into units of hours
+
+fig, ax = plt.subplots()
+ax.plot(xgpplt, Qarrtrain, '+', color = 'k')
+ax.plot(xgpplt, prmn, color = 'r')
+linfit = np.polyfit(xgpplt, Qarrtrain, 1)
+p = np.poly1d(linfit)
+#ax.plot(xgpplt, p(xgpplt), label = 'linear fit')
+ax.fill(np.concatenate([xgpplt, xgpplt[::-1]]),
+         np.concatenate([prmnp2,
+                        (prmnm2)[::-1]]),
+         alpha=0.3, fc='r', ec='None', label='$2 \sigma$')
+plt.legend(ncol = 3)
+plt.title("Channel " + str(channel))
+ax.set_ylabel("Q-factor (dB)")
+ax.set_xlabel("time (hours)")
+#ax.plot(xgp, Qgp, label = "GP pred. mean", color = 'r')
+plt.savefig('GPfitCh' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+# %% try linear fit 
+
+fig, ax = plt.subplots()
+ax.plot(xgpplt, Qarrtrain, '.', color = 'c')
+linfit2 = np.polyfit(xgpplt, Qarrtrain, 1)
+p = np.poly1d(linfit2)
+ax.plot(p(xgpplt))
+plt.legend()
+ax.set_ylabel("Q-factor (dB)")
+ax.set_xlabel("time (hours)")
+plt.show()
+
 # %% plot LML vs hyperparameter curves 
 
 #thetatests = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
@@ -290,32 +387,10 @@ ax.set_xlabel("H2")
 plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
-# %% plot fitted GP model 
-sdgp = np.mean(sdgp)
-prmnp2 = prmn + 2*sdgp
-prmnm2 = prmn - 2*sdgp
-xgpplt = xgp*downsampleval*0.25  # put x axis into units of hours
-
-fig, ax = plt.subplots()
-ax.plot(xgpplt, Qarrtrain, '.', color = 'c')
-ax.plot(xgpplt, prmn, label = "GP pred. mean", color = 'r')
-ax.fill(np.concatenate([xgpplt, xgpplt[::-1]]),
-         np.concatenate([prmnp2,
-                        (prmnm2)[::-1]]),
-         alpha=0.3, fc='r', ec='None', label='$2 \sigma$')
-plt.legend()
-ax.set_ylabel("Q-factor (dB)")
-ax.set_xlabel("time (hours)")
-#ax.plot(xgp, Qgp, label = "GP pred. mean", color = 'r')
-plt.savefig('GPfitvarCh' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-plt.show()
-
-
-
 # %% plotting 
 #fig, ax = plt.subplots()
 a = np.hstack(Qarr)
-_ = plt.hist(a, bins='auto', color='c')
+_ = plt.hist(a, color='c')
 plt.xlabel("Q-factor")
 plt.ylabel("Frequency")
 plt.savefig('Qvstimech1seghist.pdf', dpi=200,bbox_inches='tight')
@@ -335,12 +410,12 @@ ax.set_xlabel("time (hours)")
 plt.savefig('pmdplotex.pdf', dpi=200,bbox_inches='tight')
 plt.show() """
 
-fig, ax = plt.subplots()
+""" fig, ax = plt.subplots()
 ax.plot(CDarr,'+')
 ax.set_ylabel("CD (ps/nm)")
 ax.set_xlabel("time (hours)")
 plt.savefig('CDvstimech1seg1.pdf', dpi=200,bbox_inches='tight')
-plt.show()
+plt.show() """
 
 """ fig, ax = plt.subplots()
 ax.plot(Parr, '+')
@@ -350,5 +425,8 @@ ax.set_xlabel("time (hours)")
 plt.show() """
 
 
+""" Qgrad = np.gradient(np.asarray(Qarr))
+plt.plot(Qgrad)
+plt.show() """
 
 # %%
