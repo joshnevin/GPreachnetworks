@@ -131,6 +131,17 @@ def get_discontinuities_in_time(time_column):
             discons.append(i+1)
     return discons
 
+def get_contiguous_bactches(discons, Q):
+    """
+    split up Q into contiguous segments 
+    """  
+    discons = [0] + discons
+    segs = []
+    for i in range(len(discons) -1 ):
+        segs.append(Qarr[discons[i]:discons[i+1]])
+    return segs
+
+
 def convert_to_lin_Q(Q):
     """
     convert from Q(dB) to Q
@@ -149,13 +160,23 @@ Qarr, CDarr, _ = down_sample(df, 1) # set sam = 1 to just return arrays with sam
 Qarr = drop_bad_values(CDarr, Qarr)
 Qarr = convert_to_lin_Q(Qarr)
 
-downsampleval = 150
+discons = get_discontinuities_in_time(timecol)
+
+batches = get_contiguous_bactches(discons, Qarr)
+batchlens = ([len(i) for i in batches ] )
+
+Qarr = batches[0]
+downsampleval = 20
 snr = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
 snr = snr.reshape(len(snr),1)
+timecol = timecol[0:discons[0]]
+#x = np.asarray([timecol[i]/(24*60) for i in range(0, round(len(timecol)), downsampleval)])
 x = np.asarray([timecol[i]/(24*60) for i in range(0, round(len(timecol)), downsampleval)])
 x = x.reshape(len(x), 1)
 numpoints = len(snr)
 numedges = 1
+
+
 # %%
 
 #snr = np.genfromtxt(open("hetdata20.csv", "r"), delimiter=",", dtype =float) # run heteroscedastic datagen section from GPreachringsrand.py 
@@ -544,7 +565,7 @@ if algtest:
     #plt.savefig('HGPtestgoldberg.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestwilliams.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestyuanwhaba.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQ'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQcont'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     f, ax = plt.subplots()
@@ -553,7 +574,7 @@ if algtest:
     ax.set_xlabel("Time (days)")
     ax.set_ylabel("Q-factor $\sigma$ (dB)")
     #plt.savefig('HGPtestgoldbergsig.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQsig'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQsigcont'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     plt.plot(lml)

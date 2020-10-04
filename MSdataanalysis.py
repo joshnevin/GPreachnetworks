@@ -225,7 +225,17 @@ def get_discontinuities_in_time(time_column):
         if timecol[i+1] - timecol[i] > 15.0:
             discons.append(i+1)
     return discons
-    
+
+def get_contiguous_bactches(discons, Q):
+    """
+    split up Q into contiguous segments 
+    """  
+    discons = [0] + discons
+    segs = []
+    for i in range(len(discons) -1 ):
+        segs.append(Qarr[discons[i]:discons[i+1]])
+    return segs
+
 
 # %% get files and make a dictionary 
 root_dir = '/Users/joshnevin/Desktop/MicrosoftDataset'
@@ -235,7 +245,7 @@ simulation_files_dict = get_dict_scenario_txt(file_list_simulations)
 # %%
 badsegs = find_bad_segments(simulation_files_dict, root_dir)
 # %% select channel and segment 
-channel = '20'
+channel = '80'
 print("segment = " + str(get_segment(channel)))
 df = read_txt_to_df(simulation_files_dict[channel], root_dir)
 timecol = get_times_from_dates(df)
@@ -299,8 +309,41 @@ plt.title("channel " + str(channel))
 plt.savefig('Qlinvarvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
+# %%
 
-# %% perform downsampling
+segs = get_contiguous_bactches(discons, Qarr)
+
+seglens = ([len(i) for i in segs ] )
+segmax = seglens.index(max(seglens))
+
+segind = 18
+Qvar = sample_std(segs[segind], 100)
+
+fig, ax = plt.subplots()
+ax.plot(Qvar, '+')
+ax.set_ylabel("Q-factor $\sigma$ (dB)")
+ax.set_xlabel("Samples (increasing time)")
+#plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+plt.hist(Qvar, normed=True, color='c')
+plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
+x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
+Qvarmean = np.nanmean(Qvar)
+Qvarsd = np.nanstd(Qvar)
+Qvarskew = skew(Qvar, nan_policy='omit')
+plt.plot(x, norm.pdf(x, Qvarmean, Qvarsd), label = 'Normal', color='r')
+plt.plot(x, skewnorm.pdf(x, -Qskew, Qvarmean, Qvarsd), label = 'Skewed', color='b')
+plt.xlabel("Q-factor $\sigma$ (linear)")
+plt.ylabel("Frequency")
+plt.legend()
+plt.title("channel " + str(channel) + " contig " + str(segind))
+plt.savefig('Qlinvarhistsegch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+plt.show()
+
+
+
+# %% perform downsampling for GP fitting 
 downsampleval = 150
 Qarrtrain = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
 #Qarrtrain = np.asarray(varsample(Qarr, 100))
