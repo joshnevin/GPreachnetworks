@@ -108,19 +108,26 @@ def down_sample(df, sam):
     PMDarr = np.asarray([PMDarr[i] for i in range(0, round(len(PMDarr)), sam)])
     return Qarr, CDarr, PMDarr
 
-
-def drop_bad_values(CDarr, Qarr):
+def drop_bad_values(df):
     """
-    set Q factor values for which CD is > 2 sigma from the mean to NaN so they are missed from plots
+    remove Q factor values for which CD is > 2 sigma from the mean 
     """
+    CDarr = df["CD"]
+    Qarr = df["Q-factor"]
     CDsd = np.std(CDarr)
     CDmean = np.mean(CDarr)
     Qsd = np.std(Qarr)
     Qmean = np.mean(Qarr)
+    badinds = []
     for i in range(len(CDarr)):
         if abs(CDarr[i] - CDmean) > 6*CDsd or abs(Qarr[i] - Qmean) > 6*Qsd:
-            Qarr[i] = np.nan
-    return Qarr
+            badinds.append(i)
+    try:
+        df = df.drop(badinds, axis = 0)  # drop bad rows
+    except:
+        print("no bad values to remove!")
+    return df
+
 
 def get_segment(channel):
     """
@@ -235,28 +242,29 @@ def get_contiguous_bactches(discons, Q):
     for i in range(len(discons) -1 ):
         segs.append(Qarr[discons[i]:discons[i+1]])
     return segs
-
-
-# %% get files and make a dictionary 
+# get files and make a dictionary 
 root_dir = '/Users/joshnevin/Desktop/MicrosoftDataset'
 file_list_simulations= get_list_simulations(root_dir)
 simulation_files_dict = get_dict_scenario_txt(file_list_simulations)
-#file_path = os.path.join(root_dir, test_file)
-# %%
-badsegs = find_bad_segments(simulation_files_dict, root_dir)
+#file_path = os.path.join(root_dir, test_file) 
+#badsegs = find_bad_segments(simulation_files_dict, root_dir)
 # %% select channel and segment 
-channel = '80'
+channel = '345'
 print("segment = " + str(get_segment(channel)))
 df = read_txt_to_df(simulation_files_dict[channel], root_dir)
 timecol = get_times_from_dates(df)
+df = df.drop('date', axis =1)
+df['time'] = timecol
+df = drop_bad_values(df)
+timecol = df['time'].to_numpy()
 discons = get_discontinuities_in_time(timecol)
-Qarr, CDarr, PMDarr = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
-Qarr = drop_bad_values(CDarr, Qarr)
+Qarr, CDarr, _ = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
+#Qarr = drop_bad_values(CDarr, Qarr)
 Qarr = convert_to_lin_Q(Qarr)
 
-Qmean = np.nanmean(Qarr) # ignore Nans
-Qsd = np.nanstd(Qarr) # ignore Nans
-Qskew = skew(Qarr, nan_policy='omit') # ignore Nans
+Qmean = np.mean(Qarr) # ignore Nans
+Qsd = np.std(Qarr) # ignore Nans
+Qskew = skew(Qarr) # ignore Nans
 # fit Gaussian to histogram
 
 font = { 'family' : 'sans-serif',
@@ -264,91 +272,96 @@ font = { 'family' : 'sans-serif',
                 'size'   : 14}
 matplotlib.rc('font', **font)
 
-fig, ax = plt.subplots()
-ax.plot(timecol)
-ax.set_ylabel("Time (mins)")
-ax.set_xlabel("Samples")
-plt.title("Channel " + str(channel))
-plt.savefig('timediscons' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-plt.show()
+
+plot_discon = False
+if plot_discon:
+    fig, ax = plt.subplots()
+    ax.plot(timecol)
+    ax.set_ylabel("Time (mins)")
+    ax.set_xlabel("Samples")
+    plt.title("Channel " + str(channel))
+    plt.savefig('timediscons' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
 
-Qvar = sample_std(Qarr, 100)
-fig, ax = plt.subplots()
-ax.plot(Qvar, '+')
-ax.set_ylabel("Q-factor $\sigma$ (dB)")
-ax.set_xlabel("Time (AU)")
-#plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
-plt.show()
+    Qvar = sample_std(Qarr, 100)
+    fig, ax = plt.subplots()
+    ax.plot(Qvar, '+')
+    ax.set_ylabel("Q-factor $\sigma$ (dB)")
+    ax.set_xlabel("Time (AU)")
+    #plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
 
-plt.hist(Qarr, normed=True, color='c')
-plt.xlim((np.nanmin(Qarr), np.nanmax(Qarr)))
-x = np.linspace(np.nanmin(Qarr), np.nanmax(Qarr), len(Qarr))
-plt.plot(x, norm.pdf(x, Qmean, Qsd), label = 'Normal', color='r')
-plt.plot(x, skewnorm.pdf(x, -Qskew, Qmean, Qsd), label = 'Skewed', color='b')
-plt.xlabel("Q-factor (dB)")
-plt.ylabel("Frequency")
-plt.legend()
-plt.title("channel " + str(channel))
-plt.savefig('Qlinvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-plt.show()
+    plt.hist(Qarr, normed=True, color='c')
+    plt.xlim((np.nanmin(Qarr), np.nanmax(Qarr)))
+    x = np.linspace(np.nanmin(Qarr), np.nanmax(Qarr), len(Qarr))
+    plt.plot(x, norm.pdf(x, Qmean, Qsd), label = 'Normal', color='r')
+    plt.plot(x, skewnorm.pdf(x, -Qskew, Qmean, Qsd), label = 'Skewed', color='b')
+    plt.xlabel("Q-factor (dB)")
+    plt.ylabel("Frequency")
+    plt.legend()
+    plt.title("channel " + str(channel))
+    plt.savefig('Qlinvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
-plt.hist(Qvar, normed=True, color='c')
-plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
-x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
-Qvarmean = np.nanmean(Qvar)
-Qvarsd = np.nanstd(Qvar)
-Qvarskew = skew(Qvar, nan_policy='omit')
-plt.plot(x, norm.pdf(x, Qvarmean, Qvarsd), label = 'Normal', color='r')
-plt.plot(x, skewnorm.pdf(x, -Qskew, Qvarmean, Qvarsd), label = 'Skewed', color='b')
-plt.xlabel("Q-factor $\sigma$ (dB)")
-plt.ylabel("Frequency")
-plt.legend()
-plt.title("channel " + str(channel))
-plt.savefig('Qlinvarvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-plt.show()
+    plt.hist(Qvar, normed=True, color='c')
+    plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
+    x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
+    Qvarmean = np.nanmean(Qvar)
+    Qvarsd = np.nanstd(Qvar)
+    Qvarskew = skew(Qvar, nan_policy='omit')
+    plt.plot(x, norm.pdf(x, Qvarmean, Qvarsd), label = 'Normal', color='r')
+    plt.plot(x, skewnorm.pdf(x, -Qskew, Qvarmean, Qvarsd), label = 'Skewed', color='b')
+    plt.xlabel("Q-factor $\sigma$ (dB)")
+    plt.ylabel("Frequency")
+    plt.legend()
+    plt.title("channel " + str(channel))
+    plt.savefig('Qlinvarvstimehistch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
-# %%
+# %% find batches of contiguous data
 
-segs = get_contiguous_bactches(discons, Qarr)
+batches = get_contiguous_bactches(discons, Qarr)
+batch_lens = ([len(i) for i in batches ] )
+batch_max = batch_lens.index(max(batch_lens))
+batch_ind = 10
+Qvar = sample_std(batches[batch_ind], 100)
 
-seglens = ([len(i) for i in segs ] )
-segmax = seglens.index(max(seglens))
+plot_sample_std_cont = False
+if plot_sample_std_cont:
+    fig, ax = plt.subplots()
+    ax.plot(Qvar, '+')
+    ax.set_ylabel("Q-factor $\sigma$ (dB)")
+    ax.set_xlabel("Samples (increasing time)")
+    #plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
-segind = 18
-Qvar = sample_std(segs[segind], 100)
-
-fig, ax = plt.subplots()
-ax.plot(Qvar, '+')
-ax.set_ylabel("Q-factor $\sigma$ (dB)")
-ax.set_xlabel("Samples (increasing time)")
-#plt.savefig('hyp2variation.pdf', dpi=200,bbox_inches='tight')
-plt.show()
-
-plt.hist(Qvar, normed=True, color='c')
-plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
-x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
-Qvarmean = np.nanmean(Qvar)
-Qvarsd = np.nanstd(Qvar)
-Qvarskew = skew(Qvar, nan_policy='omit')
-plt.plot(x, norm.pdf(x, Qvarmean, Qvarsd), label = 'Normal', color='r')
-plt.plot(x, skewnorm.pdf(x, -Qskew, Qvarmean, Qvarsd), label = 'Skewed', color='b')
-plt.xlabel("Q-factor $\sigma$ (linear)")
-plt.ylabel("Frequency")
-plt.legend()
-plt.title("channel " + str(channel) + " contig " + str(segind))
-plt.savefig('Qlinvarhistsegch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-plt.show()
-
-
+    plt.hist(Qvar, normed=True, color='c')
+    plt.xlim((np.nanmin(Qvar), np.nanmax(Qvar)))
+    x = np.linspace(np.nanmin(Qvar), np.nanmax(Qvar), len(Qvar))
+    Qvarmean = np.nanmean(Qvar)
+    Qvarsd = np.nanstd(Qvar)
+    Qvarskew = skew(Qvar, nan_policy='omit')
+    plt.plot(x, norm.pdf(x, Qvarmean, Qvarsd), label = 'Normal', color='r')
+    plt.plot(x, skewnorm.pdf(x, -Qskew, Qvarmean, Qvarsd), label = 'Skewed', color='b')
+    plt.xlabel("Q-factor $\sigma$ (linear)")
+    plt.ylabel("Frequency")
+    plt.legend()
+    plt.title("channel " + str(channel) + " contig " + str(batch_ind))
+    plt.savefig('Qlinvarhistsegch' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.show()
 
 # %% perform downsampling for GP fitting 
-downsampleval = 150
-Qarrtrain = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
+downsampleval = 1
+#Qarrtrain = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
 #Qarrtrain = np.asarray(varsample(Qarr, 100))
-#xgp = np.linspace(0, len(Qarrtrain), len(Qarrtrain))
-xgp = np.asarray([timecol[i] for i in range(0, round(len(timecol)), downsampleval)])
+#xgp = np.asarray([timecol[i] for i in range(0, round(len(timecol)), downsampleval)])
+Qarrtrain = batches[batch_ind]
+timecol_gp = timecol[discons[batch_ind-1]:discons[batch_ind]]
+#x = np.asarray([timecol[i]/(24*60) for i in range(0, round(len(timecol)), downsampleval)])
+xgp = np.asarray([timecol_gp[i]/(24*60) for i in range(0, round(len(timecol_gp)), downsampleval)])
+#xgp = x.reshape(len(xgp), 1)
 
 # %% try different kernels and record LML
 
@@ -378,39 +391,28 @@ print("theta (log) = " + str(theta))
 
 # %% plot fitted GP model 
 sdgp = np.mean(sdgp)
-prmnp2 = prmn + 2*sdgp
-prmnm2 = prmn - 2*sdgp
-xgpplt = xgp/60  # put x axis into units of hours
+prmnp3 = prmn + 3*sdgp
+prmnm3 = prmn - 3*sdgp
 
 fig, ax = plt.subplots()
-ax.plot(xgpplt, Qarrtrain, '+', color = 'k')
-ax.plot(xgpplt, prmn, color = 'r')
-linfit = np.polyfit(xgpplt, Qarrtrain, 1)
+ax.plot(xgp, Qarrtrain, '+', color = 'k')
+ax.plot(xgp, prmn, color = 'r')
+linfit = np.polyfit(xgp, Qarrtrain, 1)
 p = np.poly1d(linfit)
 #ax.plot(xgpplt, p(xgpplt), label = 'linear fit')
-ax.fill(np.concatenate([xgpplt, xgpplt[::-1]]),
-         np.concatenate([prmnp2,
-                        (prmnm2)[::-1]]),
-         alpha=0.3, fc='r', ec='None', label='$2 \sigma$')
+ax.fill(np.concatenate([xgp, xgp[::-1]]),
+         np.concatenate([prmnp3,
+                        (prmnm3)[::-1]]),
+         alpha=0.3, fc='r', ec='None', label='$3 \sigma$')
 plt.legend(ncol = 3)
 plt.title("Channel " + str(channel))
 ax.set_ylabel("Q-factor (dB)")
 ax.set_xlabel("time (hours)")
+ax.set_xlim([xgp[0], xgp[-1]])
 #ax.plot(xgp, Qgp, label = "GP pred. mean", color = 'r')
 plt.savefig('GPfitCh' + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
 plt.show()
 
-# %% try linear fit 
-
-fig, ax = plt.subplots()
-ax.plot(xgpplt, Qarrtrain, '.', color = 'c')
-linfit2 = np.polyfit(xgpplt, Qarrtrain, 1)
-p = np.poly1d(linfit2)
-ax.plot(p(xgpplt))
-plt.legend()
-ax.set_ylabel("Q-factor (dB)")
-ax.set_xlabel("time (hours)")
-plt.show()
 
 # %% plot LML vs hyperparameter curves 
 

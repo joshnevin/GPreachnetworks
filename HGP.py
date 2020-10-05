@@ -62,18 +62,25 @@ def down_sample(df, sam):
     return Qarr, CDarr, PMDarr
 
 
-def drop_bad_values(CDarr, Qarr):
+def drop_bad_values(df):
     """
-    set Q factor values for which CD is > 2 sigma from the mean to NaN so they are missed from plots
+    remove Q factor values for which CD is > 2 sigma from the mean 
     """
+    CDarr = df["CD"]
+    Qarr = df["Q-factor"]
     CDsd = np.std(CDarr)
     CDmean = np.mean(CDarr)
     Qsd = np.std(Qarr)
     Qmean = np.mean(Qarr)
+    badinds = []
     for i in range(len(CDarr)):
         if abs(CDarr[i] - CDmean) > 6*CDsd or abs(Qarr[i] - Qmean) > 6*Qsd:
-            Qarr[i] = np.nan
-    return Qarr
+            badinds.append(i)
+    try:
+        df = df.drop(badinds, axis = 0)  # drop bad rows
+    except:
+        print("no bad values to remove!")
+    return df
 
 def read_txt_to_df(file, root_dir):
     """
@@ -149,32 +156,42 @@ def convert_to_lin_Q(Q):
     return 10**(Qarr/20)
 
 # %%
-channel = '20'
+channel = '345'
 root_dir = '/Users/joshnevin/Desktop/MicrosoftDataset'
 file_list_simulations= get_list_simulations(root_dir)
 simulation_files_dict = get_dict_scenario_txt(file_list_simulations)
 
 df = read_txt_to_df(simulation_files_dict[channel], root_dir)
 timecol = get_times_from_dates(df)
-Qarr, CDarr, _ = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
-Qarr = drop_bad_values(CDarr, Qarr)
-Qarr = convert_to_lin_Q(Qarr)
-
+df = df.drop('date', axis =1)
+df['time'] = timecol
+df = drop_bad_values(df)
+timecol = df['time'].to_numpy()
 discons = get_discontinuities_in_time(timecol)
 
-batches = get_contiguous_bactches(discons, Qarr)
-batchlens = ([len(i) for i in batches ] )
+Qarr, _, _ = down_sample(df, 1) # set sam = 1 to just return arrays with same sampling
+Qarr = convert_to_lin_Q(Qarr)
 
-Qarr = batches[0]
-downsampleval = 20
+batches = get_contiguous_bactches(discons, Qarr)
+discons = [0] + discons
+batchlens = ([len(i) for i in batches ] )
+batch_ind = 10  # note: first index is now 0 in batches list 
+Qarr = batches[batch_ind]
+print("batch size " + str(len(Qarr)))
+downsampleval = 1
 snr = np.asarray([Qarr[i] for i in range(0, round(len(Qarr)), downsampleval)])  # downsample by factor of 10
 snr = snr.reshape(len(snr),1)
-timecol = timecol[0:discons[0]]
+timecol = timecol[discons[batch_ind]:discons[batch_ind+1]]
 #x = np.asarray([timecol[i]/(24*60) for i in range(0, round(len(timecol)), downsampleval)])
 x = np.asarray([timecol[i]/(24*60) for i in range(0, round(len(timecol)), downsampleval)])
 x = x.reshape(len(x), 1)
 numpoints = len(snr)
 numedges = 1
+
+# %%
+
+plt.plot(x, snr, '*')
+plt.show()
 
 
 # %%
@@ -332,6 +349,7 @@ def HGPfunc(x,y,plot, hlow, hhigh):
         rf = np.empty([numiters,n])
         i = 0
         while i < numiters:        
+            
             breakwhile = False
             # Step 2: estimate empirical noise levels z 
             #k1is4,k2is4  = np.random.uniform(1e-2,1e2,2)
@@ -348,8 +366,8 @@ def HGPfunc(x,y,plot, hlow, hhigh):
                     breakwhile = True
                     break
             if breakwhile:
-                print("Nan value in z -- restarting iter "+ str(i))
-                
+                print("Nan value in z -- skipping iter "+ str(i))
+                i = i + 1
                 continue
             #  Step 3: estimate GP2 on D' - (x,z)
             kernel2 = C(k1is3, (hlow,hhigh)) * RBF(k2is3, (hlow,hhigh)) 
@@ -397,7 +415,7 @@ def HGPfunc(x,y,plot, hlow, hhigh):
     #sigma1 = np.reshape(sigma1,(np.size(sigma1), 1))
 
     numiters = 20
-    numrestarts = 10
+    numrestarts = 25
     start_time = time.time()
     fmstf,varfmstf, lmlopt, mse, _,NLPD = hetloopSK(ystar1,var1,numiters,numrestarts)
     duration = time.time() - start_time
@@ -499,8 +517,8 @@ NLPD = np.empty([numedges,numiters])
     lml[i] = lmls.reshape(numiters)
     MSE[i] = MSEs.reshape(numiters)
     NLPD[i] = NLPDs.reshape(numiters) """
-hlow = 1e-4
-hhigh = 1e4
+hlow = 1e-1
+hhigh = 1e1
 prmn, prmnp, lml, MSE, NLPD = HGPfunc(x,snr,False, hlow, hhigh)
 sig = (prmnp - prmn)
 
@@ -526,7 +544,7 @@ if algtest:
     matplotlib.rc('font', **font)
 
     f, ax = plt.subplots()
-    ax2 = ax.twinx()
+    #ax2 = ax.twinx()
     ax.plot(x,snr,'+')
     ax.plot(x,prmn,color='k')
     ax.fill(np.concatenate([x, x[::-1]]),
@@ -556,7 +574,7 @@ if algtest:
     #ax2.plot(x, sd, '-', label="true $\sigma$")
     #ax2.set_ylabel("$\sigma$")
     ax.set_xlabel("Time (days)")
-    ax.set_ylabel("Q-factor (dB)")
+    ax.set_ylabel("Q-factor")
     ax.set_xlim([x[0], x[-1]])
     #ax.set_ylim([6.4, 9.5])
     #ax.set_xticklabels(xlab)
@@ -565,16 +583,17 @@ if algtest:
     #plt.savefig('HGPtestgoldberg.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestwilliams.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestyuanwhaba.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQcont'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     f, ax = plt.subplots()
     ax.plot(x, sig, '--', label="learned $\sigma$")
     #ax.plot(x, sd, '-', label="true $\sigma$")
     ax.set_xlabel("Time (days)")
-    ax.set_ylabel("Q-factor $\sigma$ (dB)")
+    ax.set_ylabel("Q-factor $\sigma$")
+    ax.set_xlim([x[0], x[-1]])
     #plt.savefig('HGPtestgoldbergsig.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQsigcont'+ str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQsigcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     plt.plot(lml)
