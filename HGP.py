@@ -11,6 +11,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from sklearn.preprocessing import StandardScaler
 import time
+import os
 from numpy.linalg import cholesky
 from numpy import transpose as T
 from numpy.linalg import inv, det, solve
@@ -106,11 +107,7 @@ def convert_objects_to_float(df: pd.DataFrame) -> pd.DataFrame:
             continue
     return df
 
-def convert_to_lin_Q(Q):
-    """
-    convert from Q(dB) to Q
-    """
-    return 10**(Qarr/20)
+
 
 def get_times_from_dates(df):
     """
@@ -155,7 +152,14 @@ def convert_to_lin_Q(Q):
     """
     return 10**(Qarr/20)
 
+def convert_to_lin(SNR):
+    """
+    convert from SNR(dB) to SNR
+    """
+    return 10**(SNR/10)
+
 # %%
+
 channel = '345'
 root_dir = '/Users/joshnevin/Desktop/MicrosoftDataset'
 file_list_simulations= get_list_simulations(root_dir)
@@ -188,11 +192,19 @@ x = x.reshape(len(x), 1)
 numpoints = len(snr)
 numedges = 1
 
-# %%
-
+# %%  Javier data 
+root_dir = '/Users/joshnevin/Desktop/JavierBERdata'
+snr_file = "javiersnr.csv"
+time_file = "javiersnrtime.csv"
+snr_path = os.path.join(root_dir, snr_file)
+time_path = os.path.join(root_dir, time_file)
+snr = np.genfromtxt(open(snr_path, "r"), delimiter=",", dtype =float)
+x = np.genfromtxt(open(time_path, "r"), delimiter=",", dtype =float)
+snr = convert_to_lin(snr)
+snr = snr[0:200]
+x = x[0:200]/500
 plt.plot(x, snr, '*')
 plt.show()
-
 
 # %%
 
@@ -238,7 +250,7 @@ sd = 0.01 + 0.25*(1 - np.sin(2.5*x))**2
 y = np.random.normal(wmean, sd)
 snr = y """
 
-def HGPfunc(x,y,plot, hlow, hhigh):
+def HGPfunc(x,y,plot, h1low, h1high, h2low, h2high):
     y = y.reshape(-1,1)
     x = x.reshape(-1,1)
     if plot:
@@ -312,23 +324,23 @@ def HGPfunc(x,y,plot, hlow, hhigh):
         for i in range(numrestarts):    
             #k1is4 = np.random.uniform(1e-2,1e3)
             #k2is4 = np.random.uniform(1e-1,1e3)
-            k1is4 = np.random.uniform(hlow,hhigh)
-            k2is4 = np.random.uniform(hlow,hhigh)
+            k1is4 = np.random.uniform(h1low,h1high)
+            k2is4 = np.random.uniform(h2low,h2high)
             kis4 = np.ndarray((numh,), buffer=np.array([k1is4,k2is4]), dtype = float)
-            s4res = minimize(lmlh,kis4,args=(y,R),method = 'L-BFGS-B',jac=lmlgh,bounds = ((hlow,hhigh),(hlow,hhigh)),options={'maxiter':1e2})
+            s4res = minimize(lmlh,kis4,args=(y,R),method = 'L-BFGS-B',jac=lmlgh,bounds = ((h1low,h1high),(h2low,h2high)),options={'maxiter':1e2})
             step4res = []
             if s4res.success:
                 step4res.append(s4res.x)
-                print("success " + str(k1is4))
-                print("success " + str(k2is4))
+                print("successful k1:" + str(k1is4))
+                print("successful k2: " + str(k2is4))
             else:
                 print("error " + str(k1is4))
                 print("error " + str(k2is4))
                 #raise ValueError(s4res.message)
                 #k1is4 = np.random.uniform(1e-2,1e3)
                 #k2is4 = np.random.uniform(2e-1,1e3)
-                k1is4 = np.random.uniform(hlow,hhigh)
-                k2is4 = np.random.uniform(hlow,hhigh)
+                k1is4 = np.random.uniform(h1low,h1high)
+                k2is4 = np.random.uniform(h2low,h2high)
                 print("error in hypopth() - reinitialising hyperparameters")
                 continue 
             k1s4[i] = step4res[0][0]
@@ -355,8 +367,8 @@ def HGPfunc(x,y,plot, hlow, hhigh):
             #k1is4,k2is4  = np.random.uniform(1e-2,1e2,2)
             #k1is3, k1is4  =  np.random.uniform(1e-2,1e2,2)
             #k2is3, k2is4  =  np.random.uniform(1e-1,1e2,2)
-            k1is3  =  np.random.uniform(hlow,hhigh,1)
-            k2is3  =  np.random.uniform(hlow,hhigh,1)
+            k1is3  =  np.random.uniform(h1low,h1high,1)
+            k2is3  =  np.random.uniform(h2low,h2high,1)
             z = np.empty([n,1])
             for j in range(n):
                 #np.random.seed()
@@ -370,7 +382,7 @@ def HGPfunc(x,y,plot, hlow, hhigh):
                 i = i + 1
                 continue
             #  Step 3: estimate GP2 on D' - (x,z)
-            kernel2 = C(k1is3, (hlow,hhigh)) * RBF(k2is3, (hlow,hhigh)) 
+            kernel2 = C(k1is3, (h1low,h1high)) * RBF(k2is3, (h2low,h2high)) 
             gpr2 = GaussianProcessRegressor(kernel=kernel2, n_restarts_optimizer = numrestarts, normalize_y=False, alpha=np.var(z))
             
             gpr2.fit(x, z)
@@ -405,17 +417,20 @@ def HGPfunc(x,y,plot, hlow, hhigh):
             #k2is3 = k2s4
             i = i + 1
         return fmstf,varfmstf, lmloptf, MSE, rf, NLPD #  , NLPD 
+    
+    numiters = 20
+    numrestarts = 20
+    
     #kernel1 = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-3, 1e3)) + W(1.0, (1e-5, 1e5))
     #gpr1 = GaussianProcessRegressor(kernel=kernel1, n_restarts_optimizer = 0, normalize_y=True)
-    kernel1 = C(1.0, (hlow,hhigh)) * RBF(1.0, (hlow,hhigh)) 
-    gpr1 = GaussianProcessRegressor(kernel=kernel1, n_restarts_optimizer = 10, normalize_y=False, alpha=np.var(y))
+    kernel1 = C(1.0, (h1low,h1high)) * RBF(1.0, (h2low,h2high)) 
+    gpr1 = GaussianProcessRegressor(kernel=kernel1, n_restarts_optimizer = numrestarts, normalize_y=False, alpha=np.var(y))
     gpr1.fit(x, y)
     ystar1, sigma1 = gpr1.predict(x, return_std=True )
     var1 = (sigma1**2 + np.var(y))
     #sigma1 = np.reshape(sigma1,(np.size(sigma1), 1))
 
-    numiters = 20
-    numrestarts = 25
+    
     start_time = time.time()
     fmstf,varfmstf, lmlopt, mse, _,NLPD = hetloopSK(ystar1,var1,numiters,numrestarts)
     duration = time.time() - start_time
@@ -506,20 +521,25 @@ def HGPfunc(x,y,plot, hlow, hhigh):
 
 numiters = 20
 
-prmn = np.empty([numedges,numpoints])
+""" prmn = np.empty([numedges,numpoints])
 prmnp = np.empty([numedges,numpoints])
 lml = np.empty([numedges,numiters])
 MSE = np.empty([numedges,numiters])
-NLPD = np.empty([numedges,numiters])
+NLPD = np.empty([numedges,numiters]) """
 
 """ for i in range(np.size(snr,0)):
     prmn[i], prmnp[i], lmls, MSEs, NLPDs = HGPfunc(x,snr[i],False)
     lml[i] = lmls.reshape(numiters)
     MSE[i] = MSEs.reshape(numiters)
     NLPD[i] = NLPDs.reshape(numiters) """
-hlow = 1e-1
-hhigh = 1e1
-prmn, prmnp, lml, MSE, NLPD = HGPfunc(x,snr,False, hlow, hhigh)
+
+
+h1low = 1e-1
+h1high = 1e1
+h2low = 1e-1
+h2high = 1e2
+
+prmn, prmnp, lml, MSE, NLPD = HGPfunc(x,snr,False, h1low, h1high, h2low, h2high)
 sig = (prmnp - prmn)
 
 prmnp1 = prmn + sig    
@@ -537,7 +557,7 @@ prmnn5 = prmn - 5*sig
 # %%
 algtest = True
 if algtest:
-
+    xplt = x*(500/60)
     font = { 'family' : 'sans-serif',
                     'weight' : 'normal',
                     'size'   : 15}
@@ -545,9 +565,9 @@ if algtest:
 
     f, ax = plt.subplots()
     #ax2 = ax.twinx()
-    ax.plot(x,snr,'+')
-    ax.plot(x,prmn,color='k')
-    ax.fill(np.concatenate([x, x[::-1]]),
+    ax.plot(xplt,snr,'+')
+    ax.plot(xplt,prmn,color='k')
+    ax.fill(np.concatenate([xplt, xplt[::-1]]),
             np.concatenate([prmnp3,
                             (prmnn3)[::-1]]),
             alpha=0.3, fc='r', ec='None', label='$3 \sigma$')
@@ -561,11 +581,11 @@ if algtest:
     #                         (prmnn3[ind])[::-1]]),
     #          alpha=0.3, fc='r', ec='None')
     # =============================================================================
-    ax.fill(np.concatenate([x, x[::-1]]),
+    ax.fill(np.concatenate([xplt, xplt[::-1]]),
             np.concatenate([prmnp5,
                             (prmnp3)[::-1]]),
             alpha=0.3, fc='g', ec='None', label='$5 \sigma$')
-    ax.fill(np.concatenate([x, x[::-1]]),
+    ax.fill(np.concatenate([xplt, xplt[::-1]]),
             np.concatenate([prmnn3,
                             (prmnn5)[::-1]]),
             alpha=0.3, fc='g', ec='None')
@@ -573,9 +593,9 @@ if algtest:
     #ax2.plot(x, sig, '--', label="learned $\sigma$")
     #ax2.plot(x, sd, '-', label="true $\sigma$")
     #ax2.set_ylabel("$\sigma$")
-    ax.set_xlabel("Time (days)")
-    ax.set_ylabel("Q-factor")
-    ax.set_xlim([x[0], x[-1]])
+    ax.set_xlabel("Time (mins)")
+    ax.set_ylabel("SNR")
+    ax.set_xlim([xplt[0], xplt[-1]])
     #ax.set_ylim([6.4, 9.5])
     #ax.set_xticklabels(xlab)
     #ax.set_yticklabels(ylab)
@@ -583,17 +603,19 @@ if algtest:
     #plt.savefig('HGPtestgoldberg.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestwilliams.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestyuanwhaba.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('hgpfitMSQcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('JavierHGPfitSNR.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     f, ax = plt.subplots()
-    ax.plot(x, sig, '--', label="learned $\sigma$")
+    ax.plot(xplt, sig, '--', label="learned $\sigma$")
     #ax.plot(x, sd, '-', label="true $\sigma$")
-    ax.set_xlabel("Time (days)")
-    ax.set_ylabel("Q-factor $\sigma$")
-    ax.set_xlim([x[0], x[-1]])
+    ax.set_xlabel("Time (mins)")
+    ax.set_ylabel("SNR $\sigma$")
+    ax.set_xlim([xplt[0], xplt[-1]])
     #plt.savefig('HGPtestgoldbergsig.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('hgpfitMSQsigcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('hgpfitMSQsigcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('JavierHGPfitSNRsigma.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     plt.plot(lml)
