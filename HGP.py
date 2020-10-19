@@ -20,12 +20,14 @@ from numpy.random import normal
 from scipy.optimize import minimize
 from scipy.spatial.distance import pdist, cdist, squareform
 from scipy.stats import norm
+from scipy.special import erfcinv
 #import multiprocessing
 #from GHquad import GHquad
 #import matplotlib
 import math
 #matplotlib.rc_file_defaults()   # use to return to Matplotlib defaults 
 import pandas as pd
+import cProfile
 def get_list_simulations(root_dir):
     """
     Get a list with all the name of the simulation csv files.
@@ -194,15 +196,27 @@ numedges = 1
 
 # %%  Javier data 
 root_dir = '/Users/joshnevin/Desktop/JavierBERdata'
-snr_file = "javiersnr.csv"
-time_file = "javiersnrtime.csv"
+""" snr_file = "javiersnr.csv"
+time_file = "javiersnrtime.csv" """
+snr_file = "javierprefecBER.csv"
+time_file = "javierprefecBERtime.csv"
 snr_path = os.path.join(root_dir, snr_file)
 time_path = os.path.join(root_dir, time_file)
 snr = np.genfromtxt(open(snr_path, "r"), delimiter=",", dtype =float)
+
+snr = ((erfcinv(2*snr))**2)*2
+
 x = np.genfromtxt(open(time_path, "r"), delimiter=",", dtype =float)
-snr = convert_to_lin(snr)
-snr = snr[0:200]
-x = x[0:200]/500
+#snr = convert_to_lin(snr)
+xscale = 2000
+""" snr = snr[0:200]
+x = x[0:200]/xscale
+ """
+downsampleval = 5
+
+snr = np.asarray([snr[i] for i in range(0, round(len(snr)), downsampleval)])  # downsample by factor of 10
+x = np.asarray([x[i] for i in range(0, round(len(x)), downsampleval)])/xscale   # downsample by factor of 10
+
 plt.plot(x, snr, '*')
 plt.show()
 
@@ -418,7 +432,7 @@ def HGPfunc(x,y,plot, h1low, h1high, h2low, h2high):
             i = i + 1
         return fmstf,varfmstf, lmloptf, MSE, rf, NLPD #  , NLPD 
     
-    numiters = 20
+    numiters = 10
     numrestarts = 20
     
     #kernel1 = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-3, 1e3)) + W(1.0, (1e-5, 1e5))
@@ -519,7 +533,7 @@ def HGPfunc(x,y,plot, h1low, h1high, h2low, h2high):
     
     return fmst4i, fmstps4i, lmlopt, mse, NLPD
 
-numiters = 20
+numiters = 6
 
 """ prmn = np.empty([numedges,numpoints])
 prmnp = np.empty([numedges,numpoints])
@@ -534,9 +548,9 @@ NLPD = np.empty([numedges,numiters]) """
     NLPD[i] = NLPDs.reshape(numiters) """
 
 
-h1low = 1e-1
-h1high = 1e1
-h2low = 1e-1
+h1low = 1e-2
+h1high = 1e2
+h2low = 1e-2
 h2high = 1e2
 
 prmn, prmnp, lml, MSE, NLPD = HGPfunc(x,snr,False, h1low, h1high, h2low, h2high)
@@ -557,7 +571,9 @@ prmnn5 = prmn - 5*sig
 # %%
 algtest = True
 if algtest:
-    xplt = x*(500/60)
+    #xplt = x*(xscale /60)
+    frame1 = plt.gca()
+    xplt = x
     font = { 'family' : 'sans-serif',
                     'weight' : 'normal',
                     'size'   : 15}
@@ -589,22 +605,26 @@ if algtest:
             np.concatenate([prmnn3,
                             (prmnn5)[::-1]]),
             alpha=0.3, fc='g', ec='None')
+    #frame1.axes.get_xaxis().set_visible(False)
 
     #ax2.plot(x, sig, '--', label="learned $\sigma$")
     #ax2.plot(x, sd, '-', label="true $\sigma$")
     #ax2.set_ylabel("$\sigma$")
-    ax.set_xlabel("Time (mins)")
+    #ax.set_xlabel("Time (mins)")
+    ax.set_xlabel("Time")
     ax.set_ylabel("SNR")
     ax.set_xlim([xplt[0], xplt[-1]])
     #ax.set_ylim([6.4, 9.5])
+    ax.set_xticks([])
     #ax.set_xticklabels(xlab)
     #ax.set_yticklabels(ylab)
     ax.legend(ncol=1)
     #plt.savefig('HGPtestgoldberg.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestwilliams.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('HGPtestyuanwhaba.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpalgexample.pdf', dpi=200,bbox_inches='tight')
     #plt.savefig('hgpfitMSQcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('JavierHGPfitSNR.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('JavierHGPfitbersnrfull.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     f, ax = plt.subplots()
@@ -614,8 +634,8 @@ if algtest:
     ax.set_ylabel("SNR $\sigma$")
     ax.set_xlim([xplt[0], xplt[-1]])
     #plt.savefig('HGPtestgoldbergsig.pdf', dpi=200,bbox_inches='tight')
-    #plt.savefig('hgpfitMSQsigcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
-    plt.savefig('JavierHGPfitSNRsigma.pdf', dpi=200,bbox_inches='tight')
+    plt.savefig('hgpfitMSQsigcont' + str(batch_ind) + 'ch'  + str(channel) + '.pdf', dpi=200,bbox_inches='tight')
+    #plt.savefig('JavierHGPfitbersnrsigmafull.pdf', dpi=200,bbox_inches='tight')
     plt.show()
 
     plt.plot(lml)
@@ -643,8 +663,17 @@ if algtest:
     #plt.savefig('HGPtestyuanwhabanlpd.pdf', dpi=200,bbox_inches='tight')
     plt.show() """
 
-    
-
+# %%
+# prmn, prmnp, lml, MSE
+#plot_title = "javier_data_full"
+plot_title = "MSchannel345batch10"
+def save_hgp():
+    np.savetxt('prmn' + str(plot_title) + '.csv', prmn, delimiter=',') 
+    np.savetxt('prmnp' + str(plot_title) + '.csv', prmnp, delimiter=',') 
+    np.savetxt('lml' + str(plot_title) + '.csv', lml, delimiter=',') 
+    np.savetxt('mse' + str(plot_title) + '.csv', MSE, delimiter=',') 
+    np.savetxt('xplt' + str(plot_title) + '.csv', xplt, delimiter=',') 
+save_hgp()
 
 # %%
 
